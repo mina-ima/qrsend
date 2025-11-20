@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { QrCode, ScanLine, History, ChevronRight, Copy, Check, Sparkles, ArrowLeft, X } from 'lucide-react';
+import { QrCode, ScanLine, History, ChevronRight, Copy, Check, Sparkles, ArrowLeft, X, Download, FileText } from 'lucide-react';
 import { AppMode, HistoryItem } from './types';
 import Scanner from './components/Scanner';
 import Generator from './components/Generator';
@@ -34,10 +34,8 @@ const App = () => {
   };
 
   const handleScan = async (data: string) => {
-    // Pause scanning UI logic is handled by mounting/unmounting or overlay
     setIsAnalyzing(true);
     
-    // Create temporary item for immediate feedback
     const tempItem: HistoryItem = {
       id: 'temp',
       content: data,
@@ -46,12 +44,9 @@ const App = () => {
     };
     setScannedResult(tempItem);
 
-    // Analyze with Gemini
     const analysis = await analyzeScannedContent(data);
     
-    // Save officially
     const savedItem = addToHistory(data, 'received', analysis);
-    
     setScannedResult(savedItem);
     setIsAnalyzing(false);
   };
@@ -60,7 +55,8 @@ const App = () => {
     addToHistory(content, 'sent');
   };
 
-  // -- Render Methods --
+  // Determine if content is a file (data URL)
+  const isDataUrl = (str: string) => str.startsWith('data:');
 
   const renderHome = () => (
     <div className="flex flex-col h-full p-6 max-w-md mx-auto justify-center gap-6 animate-fade-in">
@@ -113,6 +109,7 @@ const App = () => {
 
   const renderResultModal = () => {
     if (!scannedResult) return null;
+    const isFile = isDataUrl(scannedResult.content);
 
     return (
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
@@ -132,12 +129,35 @@ const App = () => {
           </div>
 
           <div className="p-6 overflow-y-auto space-y-6">
-            {/* Raw Content */}
+            {/* Content Display */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">スキャン内容</label>
-              <div className="bg-black/40 p-4 rounded-lg border border-slate-800 font-mono text-sm text-slate-200 break-all">
-                {scannedResult.content}
-              </div>
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                {isFile ? '受信ファイル' : 'スキャン内容'}
+              </label>
+              
+              {isFile ? (
+                <div className="flex flex-col gap-4 bg-black/40 p-4 rounded-lg border border-slate-800">
+                  {scannedResult.content.startsWith('data:image') ? (
+                    <img src={scannedResult.content} alt="Received" className="w-full rounded border border-slate-700/50" />
+                  ) : (
+                     <div className="flex items-center gap-2 text-slate-300">
+                       <FileText className="w-8 h-8 text-blue-400" />
+                       <span className="text-sm font-mono truncate">Binary Data</span>
+                     </div>
+                  )}
+                  <a 
+                    href={scannedResult.content} 
+                    download="received_data"
+                    className="flex items-center justify-center gap-2 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg text-sm font-bold transition-colors"
+                  >
+                    <Download className="w-4 h-4" /> ダウンロード
+                  </a>
+                </div>
+              ) : (
+                <div className="bg-black/40 p-4 rounded-lg border border-slate-800 font-mono text-sm text-slate-200 break-all">
+                  {scannedResult.content}
+                </div>
+              )}
             </div>
 
             {/* AI Analysis */}
@@ -159,18 +179,20 @@ const App = () => {
           </div>
 
           <div className="p-4 bg-slate-800/50 border-t border-slate-800 flex gap-3">
-            <button 
-              onClick={() => {
-                navigator.clipboard.writeText(scannedResult.content);
-              }}
-              className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-medium text-white transition-colors flex items-center justify-center gap-2"
-            >
-              <Copy className="w-4 h-4" /> コピー
-            </button>
+            {!isFile && (
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(scannedResult.content);
+                }}
+                className="flex-1 py-3 bg-slate-700 hover:bg-slate-600 rounded-xl font-medium text-white transition-colors flex items-center justify-center gap-2"
+              >
+                <Copy className="w-4 h-4" /> コピー
+              </button>
+            )}
             <button 
               onClick={() => {
                 setScannedResult(null);
-                setMode(AppMode.RECEIVE); // Scan another
+                setMode(AppMode.RECEIVE); 
               }}
               className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 rounded-xl font-medium text-white transition-colors"
             >
@@ -216,8 +238,8 @@ const App = () => {
                   {new Date(item.timestamp).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
-              <p className="text-sm text-white font-medium line-clamp-2 mb-2 break-all">
-                {item.content}
+              <p className="text-sm text-white font-medium line-clamp-2 mb-2 break-all font-mono text-xs">
+                {item.content.startsWith('data:') ? '(ファイルデータ)' : item.content}
               </p>
               {item.aiAnalysis && (
                 <div className="flex items-start gap-2 mt-2 pt-2 border-t border-slate-700/50">
@@ -251,7 +273,6 @@ const App = () => {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          {/* We stop the scanner if we are displaying a result to save resources */}
           <Scanner 
             isActive={!scannedResult} 
             onScan={handleScan} 
