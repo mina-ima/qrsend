@@ -65,17 +65,20 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
     }
 
     setIsUploading(true);
-    setUploadStatus(`${file.name} をアップロード中...`);
+    setUploadStatus(`${file.name} を準備中...`);
 
     try {
-      // Upload to ephemeral storage
-      const link = await uploadFile(file);
+      // Upload with callback for status updates
+      const link = await uploadFile(file, (status) => {
+        setUploadStatus(status);
+      });
       
       setInput(link);
       setUploadStatus("アップロード完了！リンクを発行しました。");
       setGeneratedQR(link);
       onSave(link); // Automatically save to history
     } catch (err: any) {
+      console.error(err);
       setFileError(err.message || "アップロードに失敗しました。");
       setUploadStatus(null);
     } finally {

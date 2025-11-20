@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { QrCode, ScanLine, History, ChevronRight, Copy, Check, Sparkles, ArrowLeft, X, Download, FileText, AlertTriangle, ExternalLink } from 'lucide-react';
+import { QrCode, ScanLine, History, ChevronRight, Copy, Check, Sparkles, ArrowLeft, X, Download, FileText, AlertTriangle, ExternalLink, Wifi } from 'lucide-react';
 import { AppMode, HistoryItem } from './types';
 import Scanner from './components/Scanner';
 import Generator from './components/Generator';
+import DirectConnection from './components/DirectConnection';
 import { analyzeScannedContent, hasApiKey } from './services/geminiService';
 
 const App = () => {
@@ -76,8 +77,8 @@ const App = () => {
   const isUrl = (str: string) => /^https?:\/\//i.test(str);
 
   const renderHome = () => (
-    <div className="flex flex-col h-full p-6 max-w-md mx-auto justify-center gap-6 animate-fade-in">
-      <div className="text-center space-y-2 mb-8">
+    <div className="flex flex-col h-full p-6 max-w-md mx-auto justify-center gap-4 animate-fade-in">
+      <div className="text-center space-y-2 mb-4">
         <h1 className="text-4xl font-black bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">
           Gemini QR リンク
         </h1>
@@ -96,26 +97,26 @@ const App = () => {
 
       <button 
         onClick={() => setMode(AppMode.SEND)}
-        className="group relative flex items-center p-6 bg-slate-800 border border-slate-700 rounded-2xl hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 overflow-hidden"
+        className="group relative flex items-center p-5 bg-slate-800 border border-slate-700 rounded-2xl hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 overflow-hidden"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="bg-blue-500/20 p-4 rounded-full mr-5 group-hover:scale-110 transition-transform">
-          <QrCode className="w-8 h-8 text-blue-400" />
+        <div className="bg-blue-500/20 p-3 rounded-full mr-4 group-hover:scale-110 transition-transform">
+          <QrCode className="w-6 h-6 text-blue-400" />
         </div>
         <div className="text-left">
           <h3 className="text-lg font-bold text-white">データを送信</h3>
-          <p className="text-slate-400 text-xs">AI作成・大容量ファイル転送</p>
+          <p className="text-slate-400 text-xs">AI作成・クラウド転送</p>
         </div>
         <ChevronRight className="ml-auto w-5 h-5 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
       </button>
 
       <button 
         onClick={() => setMode(AppMode.RECEIVE)}
-        className="group relative flex items-center p-6 bg-slate-800 border border-slate-700 rounded-2xl hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 overflow-hidden"
+        className="group relative flex items-center p-5 bg-slate-800 border border-slate-700 rounded-2xl hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 overflow-hidden"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="bg-emerald-500/20 p-4 rounded-full mr-5 group-hover:scale-110 transition-transform">
-          <ScanLine className="w-8 h-8 text-emerald-400" />
+        <div className="bg-emerald-500/20 p-3 rounded-full mr-4 group-hover:scale-110 transition-transform">
+          <ScanLine className="w-6 h-6 text-emerald-400" />
         </div>
         <div className="text-left">
           <h3 className="text-lg font-bold text-white">データを受信</h3>
@@ -125,8 +126,23 @@ const App = () => {
       </button>
 
       <button 
+        onClick={() => setMode(AppMode.P2P)}
+        className="group relative flex items-center p-5 bg-slate-800 border border-slate-700 rounded-2xl hover:border-purple-500 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 overflow-hidden"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="bg-purple-500/20 p-3 rounded-full mr-4 group-hover:scale-110 transition-transform">
+          <Wifi className="w-6 h-6 text-purple-400" />
+        </div>
+        <div className="text-left">
+          <h3 className="text-lg font-bold text-white">P2P 直接接続</h3>
+          <p className="text-slate-400 text-xs">サーバー不要・デバイス間転送</p>
+        </div>
+        <ChevronRight className="ml-auto w-5 h-5 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
+      </button>
+
+      <button 
         onClick={() => setMode(AppMode.HISTORY)}
-        className="mt-4 flex items-center justify-center gap-2 text-slate-500 hover:text-slate-300 transition-colors text-sm font-medium py-3"
+        className="mt-2 flex items-center justify-center gap-2 text-slate-500 hover:text-slate-300 transition-colors text-sm font-medium py-3"
       >
         <History className="w-4 h-4" />
         履歴を表示
@@ -326,6 +342,10 @@ const App = () => {
         </div>
       )}
       
+      {mode === AppMode.P2P && (
+        <DirectConnection onClose={() => setMode(AppMode.HOME)} />
+      )}
+
       {mode === AppMode.HISTORY && renderHistory()}
     </div>
   );

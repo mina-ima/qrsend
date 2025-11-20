@@ -1,8 +1,10 @@
+
 export enum AppMode {
   HOME = 'HOME',
   SEND = 'SEND',
   RECEIVE = 'RECEIVE',
-  HISTORY = 'HISTORY'
+  HISTORY = 'HISTORY',
+  P2P = 'P2P'
 }
 
 export interface HistoryItem {
