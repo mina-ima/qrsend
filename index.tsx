@@ -95,6 +95,21 @@ const App = () => {
       )}
 
       <button 
+        onClick={() => setMode(AppMode.P2P)}
+        className="group relative flex items-center p-5 bg-white border border-slate-200 rounded-2xl hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 overflow-hidden shadow-sm"
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-purple-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="bg-purple-100 p-3 rounded-full mr-4 group-hover:scale-110 transition-transform">
+          <Wifi className="w-6 h-6 text-purple-600" />
+        </div>
+        <div className="text-left">
+          <h3 className="text-lg font-bold text-slate-800">P2P 直接接続</h3>
+          <p className="text-slate-500 text-xs">サーバー不要・デバイス間転送</p>
+        </div>
+        <ChevronRight className="ml-auto w-5 h-5 text-slate-400 group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
+      </button>
+
+      <button 
         onClick={() => setMode(AppMode.SEND)}
         className="group relative flex items-center p-5 bg-white border border-slate-200 rounded-2xl hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 overflow-hidden shadow-sm"
       >
@@ -122,21 +137,6 @@ const App = () => {
           <p className="text-slate-500 text-xs">QRスキャン・Gemini解析</p>
         </div>
         <ChevronRight className="ml-auto w-5 h-5 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
-      </button>
-
-      <button 
-        onClick={() => setMode(AppMode.P2P)}
-        className="group relative flex items-center p-5 bg-white border border-slate-200 rounded-2xl hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 overflow-hidden shadow-sm"
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="bg-purple-100 p-3 rounded-full mr-4 group-hover:scale-110 transition-transform">
-          <Wifi className="w-6 h-6 text-purple-600" />
-        </div>
-        <div className="text-left">
-          <h3 className="text-lg font-bold text-slate-800">P2P 直接接続</h3>
-          <p className="text-slate-500 text-xs">サーバー不要・デバイス間転送</p>
-        </div>
-        <ChevronRight className="ml-auto w-5 h-5 text-slate-400 group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
       </button>
 
       <button 
