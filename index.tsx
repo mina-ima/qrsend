@@ -76,7 +76,7 @@ const App = () => {
   const isUrl = (str: string) => /^https?:\/\//i.test(str);
 
   const renderHome = () => (
-    <div className="flex flex-col h-full p-6 max-w-md mx-auto justify-center gap-4 animate-fade-in overflow-y-auto">
+    <div className="flex flex-col h-full p-6 justify-center gap-4 animate-fade-in overflow-y-auto">
       <div className="text-center space-y-2 mb-4">
         <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 to-emerald-500 bg-clip-text text-transparent">
           Gemini QR リンク
@@ -155,10 +155,10 @@ const App = () => {
     const isLink = isUrl(scannedResult.content);
 
     return (
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-white/80 backdrop-blur-sm p-4 animate-fade-in">
-        <div className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+      <div className="absolute inset-0 z-50 flex items-end sm:items-center justify-center bg-white/90 backdrop-blur-sm p-4 animate-fade-in h-full">
+        <div className="w-full h-full sm:h-auto sm:max-h-[90%] bg-white border border-slate-200 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
           
-          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white">
+          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-white shrink-0">
             <h3 className="font-bold text-slate-800 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               受信データ
@@ -171,7 +171,7 @@ const App = () => {
             </button>
           </div>
 
-          <div className="p-6 overflow-y-auto space-y-6 bg-white">
+          <div className="p-6 overflow-y-auto space-y-6 bg-white flex-1">
             {/* Content Display */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -238,7 +238,7 @@ const App = () => {
             </div>
           </div>
 
-          <div className="p-4 bg-slate-50 border-t border-slate-200 flex gap-3">
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex gap-3 shrink-0">
             {!isFile && (
               <button 
                 onClick={() => {
@@ -265,8 +265,8 @@ const App = () => {
   };
 
   const renderHistory = () => (
-    <div className="flex flex-col h-full max-w-md mx-auto p-4">
-      <div className="flex items-center mb-6">
+    <div className="flex flex-col h-full p-4">
+      <div className="flex items-center mb-6 shrink-0">
         <button 
           onClick={() => setMode(AppMode.HOME)}
           className="p-2 hover:bg-slate-200 rounded-full text-slate-500 hover:text-slate-800 transition-colors"
@@ -279,7 +279,7 @@ const App = () => {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+      <div className="flex-1 overflow-y-auto space-y-3 pr-1 pb-4">
         {history.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-slate-400">
             <History className="w-12 h-12 mb-4 opacity-20" />
@@ -315,38 +315,46 @@ const App = () => {
   );
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] bg-slate-50 text-slate-900 overflow-hidden font-sans selection:bg-blue-200 flex flex-col">
-      <div className="flex-1 relative w-full h-full overflow-hidden">
-        {mode === AppMode.HOME && renderHome()}
+    <div className="min-h-[100dvh] w-full flex items-center justify-center sm:p-4 font-sans">
+      {/* Main App Container - Acts as a "Phone" frame on desktop, full screen on mobile */}
+      <div className="w-full max-w-md bg-slate-50 h-[100dvh] sm:h-[85vh] sm:max-h-[900px] sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col relative ring-1 ring-slate-900/5">
         
-        {mode === AppMode.SEND && (
-          <Generator 
-            onClose={() => setMode(AppMode.HOME)}
-            onSave={handleSendSave}
-          />
-        )}
-        
-        {mode === AppMode.RECEIVE && (
-          <div className="relative h-full w-full">
-            <button 
-              onClick={() => setMode(AppMode.HOME)}
-              className="absolute top-4 left-4 z-20 p-3 bg-white/50 backdrop-blur-md rounded-full text-slate-800 hover:bg-white transition-colors shadow-sm"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <Scanner 
-              isActive={!scannedResult} 
-              onScan={handleScan} 
+        <div className="flex-1 relative w-full h-full overflow-hidden flex flex-col">
+          {mode === AppMode.HOME && renderHome()}
+          
+          {mode === AppMode.SEND && (
+            <Generator 
+              onClose={() => setMode(AppMode.HOME)}
+              onSave={handleSendSave}
             />
-            {renderResultModal()}
-          </div>
-        )}
-        
-        {mode === AppMode.P2P && (
-          <DirectConnection onClose={() => setMode(AppMode.HOME)} />
-        )}
+          )}
+          
+          {mode === AppMode.RECEIVE && (
+            <div className="relative h-full w-full flex flex-col">
+              <div className="absolute top-4 left-4 z-20">
+                <button 
+                  onClick={() => setMode(AppMode.HOME)}
+                  className="p-3 bg-white/50 backdrop-blur-md rounded-full text-slate-800 hover:bg-white transition-colors shadow-sm"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="flex-1 relative bg-black">
+                <Scanner 
+                  isActive={!scannedResult} 
+                  onScan={handleScan} 
+                />
+              </div>
+              {renderResultModal()}
+            </div>
+          )}
+          
+          {mode === AppMode.P2P && (
+            <DirectConnection onClose={() => setMode(AppMode.HOME)} />
+          )}
 
-        {mode === AppMode.HISTORY && renderHistory()}
+          {mode === AppMode.HISTORY && renderHistory()}
+        </div>
       </div>
     </div>
   );

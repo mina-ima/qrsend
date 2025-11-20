@@ -288,7 +288,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
 
   if (mode === 'select') {
     return (
-      <div className="flex flex-col h-full p-6 max-w-md mx-auto animate-fade-in overflow-y-auto">
+      <div className="flex flex-col h-full p-6 justify-center animate-fade-in overflow-y-auto">
         <div className="flex items-center mb-6">
           <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full text-slate-500 hover:text-slate-800 transition-colors">
             <ArrowLeft className="w-6 h-6" />
@@ -416,14 +416,18 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
 
   if (mode === 'scan') {
     return (
-      <div className="relative h-full w-full">
-        <button onClick={resetConnection} className="absolute top-4 left-4 z-20 p-3 bg-white/50 rounded-full text-slate-800 backdrop-blur-md">
-            <ArrowLeft className="w-5 h-5" />
-        </button>
-        <Scanner 
-          isActive={true} 
-          onScan={handleScan} 
-        />
+      <div className="relative h-full w-full flex flex-col">
+        <div className="absolute top-4 left-4 z-20">
+           <button onClick={resetConnection} className="p-3 bg-white/50 rounded-full text-slate-800 backdrop-blur-md">
+                <ArrowLeft className="w-5 h-5" />
+            </button>
+        </div>
+        <div className="flex-1 bg-black">
+           <Scanner 
+             isActive={true} 
+             onScan={handleScan} 
+           />
+        </div>
         <div className="absolute bottom-24 left-0 w-full text-center pointer-events-none">
             <span className="bg-black/60 text-white px-4 py-2 rounded-full text-sm backdrop-blur-md shadow-lg">
                 相手のQRコードをスキャン
@@ -532,6 +536,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         <div className="flex items-end gap-2 mb-[env(safe-area-inset-bottom)]">
           <input 
             type="file" 
+            accept="*/*"
             ref={fileInputRef} 
             onChange={sendFile} 
             className="hidden" 

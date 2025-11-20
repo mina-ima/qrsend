@@ -93,7 +93,7 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
   const isUrl = input.startsWith('http://') || input.startsWith('https://');
 
   return (
-    <div className="flex flex-col h-full max-w-md mx-auto p-4 animate-fade-in">
+    <div className="flex flex-col h-full p-4 animate-fade-in">
       {/* Header */}
       <div className="flex items-center mb-6">
         <button 
@@ -155,6 +155,7 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
           <div className="flex gap-2 mt-3">
              <input 
               type="file" 
+              accept="*/*"
               ref={fileInputRef} 
               onChange={handleFileSelect} 
               className="hidden" 
