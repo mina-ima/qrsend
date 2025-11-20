@@ -130,14 +130,14 @@ const Scanner: React.FC<ScannerProps> = ({ onScan, isActive }) => {
   if (!isActive) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center w-full h-full bg-black relative rounded-xl overflow-hidden border border-slate-700 shadow-2xl">
+    <div className="flex flex-col items-center justify-center w-full h-full bg-black relative rounded-xl overflow-hidden border border-slate-200 shadow-2xl">
       {error ? (
-        <div className="text-red-400 flex flex-col items-center p-6 text-center max-w-xs">
-          <XCircle className="w-12 h-12 mb-4" />
-          <p className="mb-6 text-sm font-medium">{error}</p>
+        <div className="bg-white w-full h-full flex flex-col items-center justify-center p-6 text-center animate-fade-in">
+          <XCircle className="w-12 h-12 mb-4 text-red-500" />
+          <p className="mb-6 text-sm font-medium text-slate-800">{error}</p>
           <button 
             onClick={startCamera}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors border border-slate-600"
+            className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-lg transition-colors border border-slate-200 shadow-sm"
           >
             <RefreshCw className="w-4 h-4" />
             カメラを再起動
@@ -158,19 +158,19 @@ const Scanner: React.FC<ScannerProps> = ({ onScan, isActive }) => {
           />
           
           {/* Overlay UI */}
-          <div className="absolute inset-0 border-2 border-slate-800/50 pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-blue-500 rounded-lg opacity-50 shadow-[0_0_15px_rgba(59,130,246,0.5)]">
+          <div className="absolute inset-0 border-2 border-white/20 pointer-events-none">
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-blue-400 rounded-lg shadow-[0_0_20px_rgba(59,130,246,0.6)]">
               <div className="scan-line"></div>
               
               {/* Corner Markers */}
-              <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-blue-400 -mt-1 -ml-1"></div>
-              <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-blue-400 -mt-1 -mr-1"></div>
-              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-blue-400 -mb-1 -ml-1"></div>
-              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-blue-400 -mb-1 -mr-1"></div>
+              <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-blue-500 -mt-1 -ml-1"></div>
+              <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-blue-500 -mt-1 -mr-1"></div>
+              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-blue-500 -mb-1 -ml-1"></div>
+              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-blue-500 -mb-1 -mr-1"></div>
             </div>
           </div>
 
-          <div className="absolute bottom-8 bg-black/60 px-6 py-3 rounded-full flex items-center gap-3 backdrop-blur-md border border-white/10 shadow-lg">
+          <div className="absolute bottom-8 bg-black/60 px-6 py-3 rounded-full flex items-center gap-3 backdrop-blur-md border border-white/20 shadow-lg">
             <div className="relative">
               <Camera className="w-5 h-5 text-blue-400" />
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>

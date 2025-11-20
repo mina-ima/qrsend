@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Peer, DataConnection } from 'peerjs';
 import { QRCodeSVG } from 'qrcode.react';
@@ -192,14 +191,14 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
     return (
       <div className="flex flex-col h-full p-6 max-w-md mx-auto animate-fade-in">
         <div className="flex items-center mb-8">
-          <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400">
+          <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full text-slate-500 hover:text-slate-800 transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
-          <h2 className="text-xl font-bold text-purple-400 ml-2">P2P 直接接続</h2>
+          <h2 className="text-xl font-bold text-purple-600 ml-2">P2P 直接接続</h2>
         </div>
 
         <div className="flex flex-col gap-4">
-          <div className="bg-purple-900/20 p-4 rounded-xl border border-purple-500/30 text-sm text-purple-200 mb-4">
+          <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 text-sm text-purple-800 mb-4">
             <p className="font-bold mb-2 flex items-center gap-2">
               <Wifi className="w-4 h-4" /> サーバーを経由しません
             </p>
@@ -208,27 +207,27 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
 
           <button 
             onClick={startHosting}
-            className="group relative flex items-center p-6 bg-slate-800 border border-slate-700 rounded-2xl hover:border-purple-500 hover:shadow-lg hover:shadow-purple-500/10 transition-all"
+            className="group relative flex items-center p-6 bg-white border border-slate-200 rounded-2xl hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/10 transition-all shadow-sm"
           >
-             <div className="bg-purple-500/20 p-4 rounded-full mr-5">
-               <Smartphone className="w-8 h-8 text-purple-400" />
+             <div className="bg-purple-100 p-4 rounded-full mr-5">
+               <Smartphone className="w-8 h-8 text-purple-600" />
              </div>
              <div className="text-left">
-               <h3 className="text-lg font-bold text-white">待機する (ホスト)</h3>
-               <p className="text-slate-400 text-xs">QRコードを表示して接続を待つ</p>
+               <h3 className="text-lg font-bold text-slate-800">待機する (ホスト)</h3>
+               <p className="text-slate-500 text-xs">QRコードを表示して接続を待つ</p>
              </div>
           </button>
 
           <button 
             onClick={startScanning}
-            className="group relative flex items-center p-6 bg-slate-800 border border-slate-700 rounded-2xl hover:border-purple-500 hover:shadow-lg hover:shadow-purple-500/10 transition-all"
+            className="group relative flex items-center p-6 bg-white border border-slate-200 rounded-2xl hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/10 transition-all shadow-sm"
           >
-             <div className="bg-purple-500/20 p-4 rounded-full mr-5">
-               <ScanLine className="w-8 h-8 text-purple-400" />
+             <div className="bg-purple-100 p-4 rounded-full mr-5">
+               <ScanLine className="w-8 h-8 text-purple-600" />
              </div>
              <div className="text-left">
-               <h3 className="text-lg font-bold text-white">参加する (クライアント)</h3>
-               <p className="text-slate-400 text-xs">相手のQRコードを読み取る</p>
+               <h3 className="text-lg font-bold text-slate-800">参加する (クライアント)</h3>
+               <p className="text-slate-500 text-xs">相手のQRコードを読み取る</p>
              </div>
           </button>
         </div>
@@ -239,10 +238,10 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
   if (mode === 'host') {
     return (
       <div className="flex flex-col h-full items-center justify-center p-6 animate-fade-in">
-        <button onClick={onClose} className="absolute top-4 left-4 p-2 hover:bg-slate-800 rounded-full text-slate-400">
+        <button onClick={onClose} className="absolute top-4 left-4 p-2 hover:bg-slate-200 rounded-full text-slate-500">
             <ArrowLeft className="w-6 h-6" />
         </button>
-        <div className="bg-white p-6 rounded-2xl shadow-2xl mb-8 animate-scale-up">
+        <div className="bg-white p-6 rounded-2xl shadow-xl mb-8 animate-scale-up border border-slate-100">
           {peerId ? (
             <QRCodeSVG value={peerId} size={200} level="L" />
           ) : (
@@ -251,8 +250,8 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
             </div>
           )}
         </div>
-        <h3 className="text-xl font-bold text-white mb-2">接続待機中...</h3>
-        <p className="text-slate-400 text-center text-sm max-w-xs">
+        <h3 className="text-xl font-bold text-slate-800 mb-2">接続待機中...</h3>
+        <p className="text-slate-500 text-center text-sm max-w-xs">
           相手の端末で「参加する」を選び、<br/>このQRコードをスキャンしてください。
         </p>
       </div>
@@ -262,7 +261,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
   if (mode === 'scan') {
     return (
       <div className="relative h-full w-full">
-        <button onClick={() => setMode('select')} className="absolute top-4 left-4 z-20 p-3 bg-black/50 rounded-full text-white">
+        <button onClick={() => setMode('select')} className="absolute top-4 left-4 z-20 p-3 bg-white/50 rounded-full text-slate-800 backdrop-blur-md">
             <ArrowLeft className="w-5 h-5" />
         </button>
         <Scanner 
@@ -271,15 +270,15 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         />
         {status !== '接続中...' && (
              <div className="absolute bottom-24 left-0 w-full text-center pointer-events-none">
-                <span className="bg-black/60 text-white px-4 py-2 rounded-full text-sm backdrop-blur-md">
+                <span className="bg-black/60 text-white px-4 py-2 rounded-full text-sm backdrop-blur-md shadow-lg">
                    相手のQRコードをスキャン
                 </span>
              </div>
         )}
         {status === '接続中...' && (
-            <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-30">
-                <Loader2 className="w-12 h-12 text-purple-500 animate-spin mb-4" />
-                <p className="text-white font-bold">接続中...</p>
+            <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-30 backdrop-blur-sm">
+                <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
+                <p className="text-slate-800 font-bold">接続中...</p>
             </div>
         )}
       </div>
@@ -288,24 +287,24 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
 
   // Chat / Connected Mode
   return (
-    <div className="flex flex-col h-full bg-slate-950">
-      <div className="flex items-center justify-between p-4 bg-slate-900 border-b border-slate-800">
-        <button onClick={onClose} className="p-2 hover:bg-slate-800 rounded-full text-slate-400">
+    <div className="flex flex-col h-full bg-slate-50">
+      <div className="flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-sm z-10">
+        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex flex-col items-center">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+          <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             接続中
           </h3>
-          <span className="text-[10px] text-slate-500 font-mono">P2P Encrypted</span>
+          <span className="text-[10px] text-slate-400 font-mono">P2P Encrypted</span>
         </div>
         <div className="w-9"></div> {/* Spacer */}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
         {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-slate-500 opacity-50">
+            <div className="flex flex-col items-center justify-center h-full text-slate-400 opacity-60">
                 <Wifi className="w-12 h-12 mb-2" />
                 <p className="text-sm">接続されました。<br/>メッセージやファイルを送信できます。</p>
             </div>
@@ -313,23 +312,23 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl p-3 ${
+            <div className={`max-w-[80%] rounded-2xl p-3 shadow-sm ${
               msg.sender === 'me' 
                 ? 'bg-purple-600 text-white rounded-tr-none' 
-                : 'bg-slate-800 text-slate-200 rounded-tl-none'
+                : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
             }`}>
               {msg.type === 'text' ? (
                 <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
               ) : (
                 <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2 text-xs font-mono opacity-80">
+                    <div className="flex items-center gap-2 text-xs font-mono opacity-90">
                         <FileIcon className="w-4 h-4" />
                         <span className="truncate max-w-[150px]">{msg.fileData?.name}</span>
                     </div>
-                    <div className="text-[10px] opacity-60">{formatSize(msg.fileData?.size || 0)}</div>
+                    <div className="text-[10px] opacity-70">{formatSize(msg.fileData?.size || 0)}</div>
                     
                     {msg.fileData?.type.startsWith('image/') && (
-                        <img src={msg.fileData.blobUrl} alt="preview" className="rounded-lg max-h-40 object-cover border border-white/10" />
+                        <img src={msg.fileData.blobUrl} alt="preview" className="rounded-lg max-h-40 object-cover border border-black/10" />
                     )}
                     
                     <a 
@@ -338,14 +337,14 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
                         className={`flex items-center justify-center gap-2 py-2 px-4 rounded-lg text-xs font-bold transition-colors ${
                             msg.sender === 'me' 
                             ? 'bg-purple-700 hover:bg-purple-800 text-white' 
-                            : 'bg-slate-700 hover:bg-slate-600 text-white'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
                         }`}
                     >
                         <Download className="w-3 h-3" /> 保存
                     </a>
                 </div>
               )}
-              <div className={`text-[10px] mt-1 text-right ${msg.sender === 'me' ? 'text-purple-200' : 'text-slate-500'}`}>
+              <div className={`text-[10px] mt-1 text-right ${msg.sender === 'me' ? 'text-purple-200' : 'text-slate-400'}`}>
                 {new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
               </div>
             </div>
@@ -354,7 +353,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 bg-slate-900 border-t border-slate-800">
+      <div className="p-4 bg-white border-t border-slate-200">
         <div className="flex items-end gap-2">
           <input 
             type="file" 
@@ -364,7 +363,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
           />
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="p-3 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-400 hover:text-purple-400 transition-colors"
+            className="p-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-500 hover:text-purple-600 transition-colors"
           >
             <Paperclip className="w-5 h-5" />
           </button>
@@ -378,13 +377,13 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
                 }
             }}
             placeholder="メッセージを入力..."
-            className="flex-1 bg-slate-800 text-white p-3 rounded-xl border-none focus:ring-2 focus:ring-purple-500 resize-none max-h-24 min-h-[44px]"
+            className="flex-1 bg-slate-100 text-slate-900 p-3 rounded-xl border-none focus:ring-2 focus:ring-purple-500 resize-none max-h-24 min-h-[44px]"
             rows={1}
           />
           <button 
             onClick={sendMessage}
             disabled={!inputText.trim()}
-            className="p-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:hover:bg-purple-600 rounded-xl text-white transition-colors"
+            className="p-3 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 disabled:hover:bg-purple-600 rounded-xl text-white transition-colors shadow-md"
           >
             <Send className="w-5 h-5" />
           </button>
