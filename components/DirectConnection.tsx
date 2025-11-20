@@ -50,8 +50,23 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
   }, [messages]);
 
   const initializePeer = () => {
-    // Create a random ID for this peer
-    const peer = new Peer();
+    // Cleanup existing peer if any
+    if (peerRef.current) {
+      peerRef.current.destroy();
+    }
+
+    // Create a random ID for this peer with explicit STUN servers
+    const peer = new Peer({
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
+        ]
+      }
+    });
     peerRef.current = peer;
 
     peer.on('open', (id) => {
@@ -60,12 +75,29 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
     });
 
     peer.on('connection', (conn) => {
-      handleConnection(conn);
+      // IMPORTANT: Wait for the connection to be fully open before switching UI
+      // This prevents the host from thinking it's connected before the client finishes handshake
+      conn.on('open', () => {
+        handleConnection(conn);
+      });
+
+      conn.on('error', (err) => {
+        console.error("Connection error on host:", err);
+        setStatus('接続エラーが発生しました');
+      });
     });
 
     peer.on('error', (err) => {
-      console.error(err);
-      setStatus(`エラーが発生しました: ${err.type}`);
+      console.error("Peer error:", err);
+      let errorMsg = `エラー: ${err.type}`;
+      if (err.type === 'peer-unavailable') {
+        errorMsg = '相手が見つかりませんでした。IDを確認してください。';
+      } else if (err.type === 'disconnected') {
+        errorMsg = 'サーバーとの接続が切れました。';
+      } else if (err.type === 'network') {
+        errorMsg = 'ネットワークエラーが発生しました。';
+      }
+      setStatus(errorMsg);
     });
   };
 
@@ -93,7 +125,14 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
     conn.on('close', () => {
       setStatus('相手との接続が切れました');
       setConnection(null);
-      // Optionally keep messages visible but disable input
+      // Optionally return to select screen or show disconnected state
+      alert('相手との接続が切断されました');
+      setMode('select');
+    });
+
+    conn.on('error', (err) => {
+      console.error("Data connection error:", err);
+      setStatus('通信エラーが発生しました');
     });
   };
 
@@ -111,7 +150,11 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
     if (!peerRef.current || !scannedId) return;
     
     setStatus('接続中...');
-    const conn = peerRef.current.connect(scannedId);
+    
+    // Ensure reliable connection is requested
+    const conn = peerRef.current.connect(scannedId, {
+      reliable: true
+    });
     
     conn.on('open', () => {
       handleConnection(conn);
@@ -119,8 +162,8 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
     
     // If connection fails immediately
     conn.on('error', (err) => {
-        console.error("Connection Error", err);
-        setStatus("接続に失敗しました");
+        console.error("Connection Error during scan:", err);
+        setStatus("接続に失敗しました。もう一度試してください。");
     });
   };
 
@@ -238,7 +281,11 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
   if (mode === 'host') {
     return (
       <div className="flex flex-col h-full items-center justify-center p-6 animate-fade-in">
-        <button onClick={onClose} className="absolute top-4 left-4 p-2 hover:bg-slate-200 rounded-full text-slate-500">
+        <button onClick={() => {
+          onClose();
+          // Clean up if cancelling host mode
+          if (peerRef.current) peerRef.current.destroy();
+        }} className="absolute top-4 left-4 p-2 hover:bg-slate-200 rounded-full text-slate-500">
             <ArrowLeft className="w-6 h-6" />
         </button>
         <div className="bg-white p-6 rounded-2xl shadow-xl mb-8 animate-scale-up border border-slate-100">
@@ -254,6 +301,9 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         <p className="text-slate-500 text-center text-sm max-w-xs">
           相手の端末で「参加する」を選び、<br/>このQRコードをスキャンしてください。
         </p>
+        {status && status !== '接続待機中...' && (
+           <p className="mt-4 text-purple-600 text-sm font-medium animate-pulse">{status}</p>
+        )}
       </div>
     );
   }
@@ -261,7 +311,10 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
   if (mode === 'scan') {
     return (
       <div className="relative h-full w-full">
-        <button onClick={() => setMode('select')} className="absolute top-4 left-4 z-20 p-3 bg-white/50 rounded-full text-slate-800 backdrop-blur-md">
+        <button onClick={() => {
+           setMode('select');
+           if (peerRef.current) peerRef.current.destroy();
+        }} className="absolute top-4 left-4 z-20 p-3 bg-white/50 rounded-full text-slate-800 backdrop-blur-md">
             <ArrowLeft className="w-5 h-5" />
         </button>
         <Scanner 
@@ -278,7 +331,8 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         {status === '接続中...' && (
             <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-30 backdrop-blur-sm">
                 <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-4" />
-                <p className="text-slate-800 font-bold">接続中...</p>
+                <p className="text-slate-800 font-bold">接続を確立しています...</p>
+                <p className="text-slate-500 text-xs mt-2">少々お待ちください</p>
             </div>
         )}
       </div>
@@ -289,7 +343,11 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
   return (
     <div className="flex flex-col h-full bg-slate-50">
       <div className="flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-sm z-10">
-        <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-500">
+        <button onClick={() => {
+            if (confirm("接続を切断して戻りますか？")) {
+                onClose();
+            }
+        }} className="p-2 hover:bg-slate-100 rounded-full text-slate-500">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex flex-col items-center">
