@@ -76,7 +76,7 @@ const App = () => {
   const isUrl = (str: string) => /^https?:\/\//i.test(str);
 
   const renderHome = () => (
-    <div className="flex flex-col h-full p-6 max-w-md mx-auto justify-center gap-4 animate-fade-in">
+    <div className="flex flex-col h-full p-6 max-w-md mx-auto justify-center gap-4 animate-fade-in overflow-y-auto">
       <div className="text-center space-y-2 mb-4">
         <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 to-emerald-500 bg-clip-text text-transparent">
           Gemini QR リンク
@@ -315,37 +315,39 @@ const App = () => {
   );
 
   return (
-    <div className="h-screen w-screen bg-slate-50 text-slate-900 overflow-hidden font-sans selection:bg-blue-200">
-      {mode === AppMode.HOME && renderHome()}
-      
-      {mode === AppMode.SEND && (
-        <Generator 
-          onClose={() => setMode(AppMode.HOME)}
-          onSave={handleSendSave}
-        />
-      )}
-      
-      {mode === AppMode.RECEIVE && (
-        <div className="relative h-full w-full">
-          <button 
-            onClick={() => setMode(AppMode.HOME)}
-            className="absolute top-4 left-4 z-20 p-3 bg-white/50 backdrop-blur-md rounded-full text-slate-800 hover:bg-white transition-colors shadow-sm"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <Scanner 
-            isActive={!scannedResult} 
-            onScan={handleScan} 
+    <div className="fixed inset-0 w-full h-[100dvh] bg-slate-50 text-slate-900 overflow-hidden font-sans selection:bg-blue-200 flex flex-col">
+      <div className="flex-1 relative w-full h-full overflow-hidden">
+        {mode === AppMode.HOME && renderHome()}
+        
+        {mode === AppMode.SEND && (
+          <Generator 
+            onClose={() => setMode(AppMode.HOME)}
+            onSave={handleSendSave}
           />
-          {renderResultModal()}
-        </div>
-      )}
-      
-      {mode === AppMode.P2P && (
-        <DirectConnection onClose={() => setMode(AppMode.HOME)} />
-      )}
+        )}
+        
+        {mode === AppMode.RECEIVE && (
+          <div className="relative h-full w-full">
+            <button 
+              onClick={() => setMode(AppMode.HOME)}
+              className="absolute top-4 left-4 z-20 p-3 bg-white/50 backdrop-blur-md rounded-full text-slate-800 hover:bg-white transition-colors shadow-sm"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <Scanner 
+              isActive={!scannedResult} 
+              onScan={handleScan} 
+            />
+            {renderResultModal()}
+          </div>
+        )}
+        
+        {mode === AppMode.P2P && (
+          <DirectConnection onClose={() => setMode(AppMode.HOME)} />
+        )}
 
-      {mode === AppMode.HISTORY && renderHistory()}
+        {mode === AppMode.HISTORY && renderHistory()}
+      </div>
     </div>
   );
 };

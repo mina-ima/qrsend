@@ -288,7 +288,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
 
   if (mode === 'select') {
     return (
-      <div className="flex flex-col h-full p-6 max-w-md mx-auto animate-fade-in">
+      <div className="flex flex-col h-full p-6 max-w-md mx-auto animate-fade-in overflow-y-auto">
         <div className="flex items-center mb-6">
           <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full text-slate-500 hover:text-slate-800 transition-colors">
             <ArrowLeft className="w-6 h-6" />
@@ -296,7 +296,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
           <h2 className="text-xl font-bold text-purple-600 ml-2">P2P 直接接続</h2>
         </div>
 
-        <div className="flex flex-col gap-4 overflow-y-auto pb-4">
+        <div className="flex flex-col gap-4">
            {error && (
             <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-sm text-red-600 mb-2 flex items-start gap-2">
                <XCircle className="w-5 h-5 shrink-0" />
@@ -458,8 +458,8 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
 
   // Chat / Connected Mode
   return (
-    <div className="flex flex-col h-full bg-slate-50">
-      <div className="flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-sm z-10">
+    <div className="flex flex-col h-full bg-slate-50 w-full">
+      <div className="flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-sm z-10 shrink-0">
         <button onClick={() => {
             if (confirm("接続を切断して戻りますか？")) {
                 onClose();
@@ -477,7 +477,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         <div className="w-9"></div> {/* Spacer */}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 min-h-0 w-full">
         {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-slate-400 opacity-60">
                 <Wifi className="w-12 h-12 mb-2" />
@@ -528,8 +528,8 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 bg-white border-t border-slate-200">
-        <div className="flex items-end gap-2">
+      <div className="p-4 bg-white border-t border-slate-200 shrink-0 pb-[env(safe-area-inset-bottom)]">
+        <div className="flex items-end gap-2 mb-[env(safe-area-inset-bottom)]">
           <input 
             type="file" 
             ref={fileInputRef} 
