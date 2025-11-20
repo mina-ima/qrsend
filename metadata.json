@@ -1,0 +1,7 @@
+{
+  "name": "Gemini QR リンク",
+  "description": "QRコードとGemini AIを使用した、デバイスフリーのデータ送受信ツール。",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
