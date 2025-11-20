@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import jsQR from 'jsqr';
-import { Camera, XCircle, Zap } from 'lucide-react';
+import { Camera, XCircle, RefreshCw } from 'lucide-react';
 
 interface ScannerProps {
   onScan: (data: string) => void;
@@ -10,8 +10,17 @@ interface ScannerProps {
 const Scanner: React.FC<ScannerProps> = ({ onScan, isActive }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
+
+  const cleanup = useCallback(() => {
+    setScanning(false);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+  }, []);
 
   const scanFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !scanning) return;
@@ -43,7 +52,7 @@ const Scanner: React.FC<ScannerProps> = ({ onScan, isActive }) => {
         ctx.stroke();
         
         // Stop scanning and return data
-        setScanning(false);
+        cleanup();
         onScan(code.data);
         return; // Stop the loop
       }
@@ -52,45 +61,61 @@ const Scanner: React.FC<ScannerProps> = ({ onScan, isActive }) => {
     if (scanning) {
       requestAnimationFrame(scanFrame);
     }
-  }, [scanning, onScan]);
+  }, [scanning, onScan, cleanup]);
 
-  useEffect(() => {
-    let stream: MediaStream | null = null;
-
-    const startCamera = async () => {
-      if (!isActive) return;
+  const startCamera = async () => {
+    cleanup();
+    setError(null);
+    
+    try {
+      let stream: MediaStream;
       
       try {
-        setError(null);
+        // Try environment camera first
         stream = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: "environment" } 
         });
-        
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.setAttribute("playsinline", "true"); // required to tell iOS safari we don't want fullscreen
-          await videoRef.current.play();
-          setScanning(true);
-        }
-      } catch (err) {
-        console.error("Camera access error:", err);
-        setError("カメラにアクセスできません。権限が付与されているか確認してください。");
+      } catch (envErr) {
+        console.warn("Environment camera not found, trying fallback.", envErr);
+        // Fallback to any available video source
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: true 
+        });
       }
-    };
 
+      streamRef.current = stream;
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute("playsinline", "true"); // required for iOS
+        await videoRef.current.play();
+        setScanning(true);
+      }
+    } catch (err: any) {
+      console.error("Camera access error:", err);
+      let msg = "カメラの起動に失敗しました。";
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        msg = "カメラへのアクセスが拒否されました。ブラウザの設定を確認して許可してください。";
+      } else if (err.name === 'NotFoundError') {
+        msg = "カメラが見つかりませんでした。";
+      } else if (err.name === 'NotReadableError') {
+        msg = "カメラにアクセスできません。他のアプリが使用している可能性があります。";
+      }
+      setError(msg);
+    }
+  };
+
+  useEffect(() => {
     if (isActive) {
       startCamera();
     } else {
-      setScanning(false);
+      cleanup();
     }
 
     return () => {
-      setScanning(false);
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
+      cleanup();
     };
-  }, [isActive]);
+  }, [isActive]); // Remove startCamera and cleanup from dependencies to avoid loops, logic handles updates via isActive
 
   // Trigger the scan loop when scanning state changes to true
   useEffect(() => {
@@ -104,16 +129,25 @@ const Scanner: React.FC<ScannerProps> = ({ onScan, isActive }) => {
   return (
     <div className="flex flex-col items-center justify-center w-full h-full bg-black relative rounded-xl overflow-hidden border border-slate-700 shadow-2xl">
       {error ? (
-        <div className="text-red-400 flex flex-col items-center p-6 text-center">
+        <div className="text-red-400 flex flex-col items-center p-6 text-center max-w-xs">
           <XCircle className="w-12 h-12 mb-4" />
-          <p>{error}</p>
+          <p className="mb-6 text-sm font-medium">{error}</p>
+          <button 
+            onClick={startCamera}
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-lg transition-colors border border-slate-600"
+          >
+            <RefreshCw className="w-4 h-4" />
+            カメラを再起動
+          </button>
         </div>
       ) : (
-        <div className="relative w-full h-full flex items-center justify-center">
-           {/* Hidden video element, we draw to canvas */}
+        <div className="relative w-full h-full flex items-center justify-center bg-black">
+           {/* Use opacity-0 instead of hidden to ensure video is rendered for canvas to read */}
           <video 
             ref={videoRef} 
-            className="hidden"
+            className="absolute inset-0 w-full h-full object-cover opacity-0 pointer-events-none"
+            playsInline
+            muted
           />
           <canvas 
             ref={canvasRef} 
@@ -122,14 +156,23 @@ const Scanner: React.FC<ScannerProps> = ({ onScan, isActive }) => {
           
           {/* Overlay UI */}
           <div className="absolute inset-0 border-2 border-slate-800/50 pointer-events-none">
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-blue-500 rounded-lg opacity-50">
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-blue-500 rounded-lg opacity-50 shadow-[0_0_15px_rgba(59,130,246,0.5)]">
               <div className="scan-line"></div>
+              
+              {/* Corner Markers */}
+              <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-blue-400 -mt-1 -ml-1"></div>
+              <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-blue-400 -mt-1 -mr-1"></div>
+              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-blue-400 -mb-1 -ml-1"></div>
+              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-blue-400 -mb-1 -mr-1"></div>
             </div>
           </div>
 
-          <div className="absolute bottom-6 bg-slate-900/80 px-4 py-2 rounded-full flex items-center gap-2 backdrop-blur-sm border border-slate-700">
-            <Camera className="w-4 h-4 text-blue-400 animate-pulse" />
-            <span className="text-sm font-medium text-slate-200">QRコードをスキャン中...</span>
+          <div className="absolute bottom-8 bg-black/60 px-6 py-3 rounded-full flex items-center gap-3 backdrop-blur-md border border-white/10 shadow-lg">
+            <div className="relative">
+              <Camera className="w-5 h-5 text-blue-400" />
+              <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            </div>
+            <span className="text-sm font-medium text-white tracking-wide">QRコードをスキャン中...</span>
           </div>
         </div>
       )}
