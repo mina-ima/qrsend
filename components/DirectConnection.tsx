@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Peer, DataConnection } from 'peerjs';
 import { QRCodeSVG } from 'qrcode.react';
-import { ArrowLeft, Wifi, Send, Paperclip, Download, Check, Loader2, Smartphone, ScanLine, File as FileIcon, RefreshCw, XCircle } from 'lucide-react';
+import { ArrowLeft, Wifi, Send, Paperclip, Download, Check, Loader2, Smartphone, ScanLine, File as FileIcon, RefreshCw, XCircle, AlertTriangle } from 'lucide-react';
 import Scanner from './Scanner';
 
 interface DirectConnectionProps {
   onClose: () => void;
 }
 
-type P2PMode = 'select' | 'host' | 'scan' | 'connecting' | 'connected';
+type P2PMode = 'select' | 'host' | 'initializing_client' | 'scan' | 'connecting' | 'connected';
 
 interface Message {
   id: string;
@@ -54,23 +54,36 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Transition from initializing_client to scan once peerId is ready
+  useEffect(() => {
+    if (mode === 'initializing_client' && peerId) {
+      setMode('scan');
+    }
+  }, [mode, peerId]);
+
   const initializePeer = () => {
     if (peerRef.current) {
       peerRef.current.destroy();
     }
 
-    // Use a single reliable STUN server to reduce candidate gathering time
+    // Create a random short ID for easier debugging/logging if needed, though PeerJS does this.
+    // We use multiple STUN servers to increase connection success rate.
     const peer = new Peer({
-      debug: 2, // Print warnings/errors
+      debug: 2,
       config: {
         iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' }
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' },
+          { urls: 'stun:stun3.l.google.com:19302' },
+          { urls: 'stun:stun4.l.google.com:19302' },
         ]
       }
     });
     peerRef.current = peer;
 
     peer.on('open', (id) => {
+      console.log('My Peer ID is: ' + id);
       setPeerId(id);
       if (mode === 'host') {
         setStatus('接続待機中...');
@@ -91,10 +104,9 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         setStatus('エラー');
       });
       
-      // Explicitly handle close during handshake
       conn.on('close', () => {
          if (mode !== 'connected') {
-             setStatus('接続待機中...'); // Revert to waiting if handshake failed
+             setStatus('接続待機中...'); 
          }
       });
     });
@@ -107,12 +119,14 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
       } else if (err.type === 'disconnected') {
         errorMsg = 'サーバーとの接続が切れました。';
       } else if (err.type === 'network') {
-        errorMsg = 'ネットワークエラーが発生しました。';
+        errorMsg = 'ネットワークエラーが発生しました。Wi-Fi環境を確認してください。';
       } else if (err.type === 'browser-incompatible') {
         errorMsg = 'お使いのブラウザは対応していない可能性があります。';
+      } else if (err.type === 'server-error') {
+        errorMsg = '接続サーバー(PeerJS)に到達できません。';
       }
       setError(errorMsg);
-      setMode('select');
+      // Don't reset mode immediately to let user read error
     });
   };
 
@@ -131,6 +145,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
       if (data.type === 'text') {
         addMessage('peer', 'text', data.content);
       } else if (data.type === 'file') {
+        // Reconstruct file from Blob or ArrayBuffer
         const blob = new Blob([data.file], { type: data.fileType });
         const url = URL.createObjectURL(blob);
         addMessage('peer', 'file', undefined, {
@@ -145,8 +160,8 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
     conn.on('close', () => {
       setStatus('相手との接続が切れました');
       setConnection(null);
-      alert('相手との接続が切断されました');
       setMode('select');
+      alert('相手との接続が切断されました');
     });
 
     conn.on('error', (err) => {
@@ -163,30 +178,33 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
   };
 
   const startScanning = () => {
-    setMode('scan');
+    // First, switch to initializing state. 
+    // The useEffect will switch to 'scan' once peerId is obtained.
+    setMode('initializing_client'); 
     setError(null);
-    // Don't initialize peer yet, wait until we have an ID to connect to? 
-    // Actually peer instance is needed to connect.
     initializePeer(); 
   };
 
   const handleScan = (scannedId: string) => {
-    if (!peerRef.current || !scannedId) return;
+    if (!peerRef.current || !peerId || !scannedId) return;
     
-    // Stop scanning and switch UI immediately
     setMode('connecting');
     setStatus('接続を確立しています...');
 
-    // Connect without reliable: true to avoid mobile issues
-    const conn = peerRef.current.connect(scannedId);
+    // Connect
+    const conn = peerRef.current.connect(scannedId, {
+        reliable: true // Ensure file chunks arrive in order
+    });
     
     // Set a timeout for connection
     connectionTimeoutRef.current = window.setTimeout(() => {
       if (mode !== 'connected') {
-        setError('接続がタイムアウトしました。お互いのネットワーク環境を確認してください。');
+        setError('接続がタイムアウトしました。双方が同じWi-Fiに接続しているか確認してください。');
         setStatus('タイムアウト');
+        // Close connection attempt
+        conn.close();
       }
-    }, 15000); // 15 seconds timeout
+    }, 10000); // 10 seconds timeout
     
     conn.on('open', () => {
       handleConnection(conn);
@@ -194,7 +212,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
     
     conn.on('error', (err) => {
         console.error("Connection Error during connect:", err);
-        setError("接続に失敗しました。");
+        setError("接続に失敗しました。ネットワーク環境を確認してください。");
         setMode('select');
     });
   };
@@ -271,14 +289,14 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
   if (mode === 'select') {
     return (
       <div className="flex flex-col h-full p-6 max-w-md mx-auto animate-fade-in">
-        <div className="flex items-center mb-8">
+        <div className="flex items-center mb-6">
           <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full text-slate-500 hover:text-slate-800 transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <h2 className="text-xl font-bold text-purple-600 ml-2">P2P 直接接続</h2>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 overflow-y-auto pb-4">
            {error && (
             <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-sm text-red-600 mb-2 flex items-start gap-2">
                <XCircle className="w-5 h-5 shrink-0" />
@@ -286,11 +304,20 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
             </div>
           )}
 
+          <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-sm text-amber-800 mb-2">
+            <p className="font-bold mb-2 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> 重要: ネットワーク設定
+            </p>
+            <p className="text-xs leading-relaxed">
+              接続を安定させるため、<strong>PCとスマホは同じWi-Fiネットワーク</strong>に接続してください。異なる回線（例: Wi-Fiと4G）では接続できない場合があります。
+            </p>
+          </div>
+
           <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 text-sm text-purple-800 mb-4">
             <p className="font-bold mb-2 flex items-center gap-2">
               <Wifi className="w-4 h-4" /> サーバーを経由しません
             </p>
-            <p>端末同士を直接接続してデータを転送します。WiFi接続中を推奨します。</p>
+            <p>端末同士を直接接続してデータを転送します。</p>
           </div>
 
           <button 
@@ -323,15 +350,40 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
     );
   }
 
+  if (mode === 'initializing_client') {
+     return (
+        <div className="flex flex-col h-full items-center justify-center p-6 bg-slate-50 animate-fade-in">
+            <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-6" />
+            <h3 className="text-xl font-bold text-slate-800 mb-2">準備中...</h3>
+            <p className="text-slate-500 text-center text-sm mb-8">
+                P2PネットワークのIDを取得しています。<br/>
+                数秒お待ちください。
+            </p>
+            <button onClick={resetConnection} className="text-slate-400 text-sm hover:text-slate-600 underline">
+                キャンセル
+            </button>
+        </div>
+     )
+  }
+
   if (mode === 'host') {
     return (
       <div className="flex flex-col h-full items-center justify-center p-6 animate-fade-in">
         <button onClick={resetConnection} className="absolute top-4 left-4 p-2 hover:bg-slate-200 rounded-full text-slate-500">
             <ArrowLeft className="w-6 h-6" />
         </button>
-        <div className="bg-white p-6 rounded-2xl shadow-xl mb-8 animate-scale-up border border-slate-100">
+        <div className="bg-white p-6 rounded-2xl shadow-xl mb-8 animate-scale-up border border-slate-100 relative">
           {peerId ? (
-            <QRCodeSVG value={peerId} size={200} level="L" includeMargin />
+            <>
+              <QRCodeSVG value={peerId} size={200} level="L" includeMargin />
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  {status === '接続要求を受信中...' && (
+                      <div className="bg-white/90 p-4 rounded-full shadow-lg backdrop-blur-sm">
+                         <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                      </div>
+                  )}
+              </div>
+            </>
           ) : (
             <div className="w-[200px] h-[200px] flex items-center justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
@@ -341,8 +393,11 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         <h3 className="text-xl font-bold text-slate-800 mb-2">
             {status === '接続要求を受信中...' ? '接続処理中...' : '接続待機中...'}
         </h3>
-        <p className="text-slate-500 text-center text-sm max-w-xs">
+        <p className="text-slate-500 text-center text-sm max-w-xs leading-relaxed">
           相手の端末で「参加する」を選び、<br/>このQRコードをスキャンしてください。
+        </p>
+        <p className="mt-4 text-xs text-amber-600 font-medium bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
+            同じWi-Fiに接続してください
         </p>
         
         {status !== '初期化中...' && (
@@ -388,7 +443,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
              </p>
 
              {error && (
-                 <p className="text-red-500 text-sm font-bold mb-4">{error}</p>
+                 <p className="text-red-500 text-sm font-bold mb-4 bg-red-50 px-4 py-2 rounded-lg">{error}</p>
              )}
 
              <button 
@@ -417,7 +472,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             接続中
           </h3>
-          <span className="text-[10px] text-slate-400 font-mono">P2P Encrypted</span>
+          <span className="text-[10px] text-slate-400 font-mono">P2P Direct Link</span>
         </div>
         <div className="w-9"></div> {/* Spacer */}
       </div>
