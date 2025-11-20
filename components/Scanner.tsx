@@ -20,6 +20,9 @@ const Scanner: React.FC<ScannerProps> = ({ onScan, isActive }) => {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
   }, []);
 
   const scanFrame = useCallback(() => {
@@ -115,7 +118,7 @@ const Scanner: React.FC<ScannerProps> = ({ onScan, isActive }) => {
     return () => {
       cleanup();
     };
-  }, [isActive]); // Remove startCamera and cleanup from dependencies to avoid loops, logic handles updates via isActive
+  }, [isActive]); 
 
   // Trigger the scan loop when scanning state changes to true
   useEffect(() => {

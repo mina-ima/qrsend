@@ -1,24 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { QrCode, ScanLine, History, ChevronRight, Copy, Check, Sparkles, ArrowLeft, X, Download, FileText } from 'lucide-react';
+import { QrCode, ScanLine, History, ChevronRight, Copy, Check, Sparkles, ArrowLeft, X, Download, FileText, AlertTriangle } from 'lucide-react';
 import { AppMode, HistoryItem } from './types';
 import Scanner from './components/Scanner';
 import Generator from './components/Generator';
-import { analyzeScannedContent } from './services/geminiService';
+import { analyzeScannedContent, hasApiKey } from './services/geminiService';
 
 const App = () => {
   const [mode, setMode] = useState<AppMode>(AppMode.HOME);
   const [history, setHistory] = useState<HistoryItem[]>(() => {
-    const saved = localStorage.getItem('gemini-qr-history');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('gemini-qr-history');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      console.error("Failed to load history", e);
+      return [];
+    }
   });
   
   // State for displaying scan results
   const [scannedResult, setScannedResult] = useState<HistoryItem | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [apiKeyExists, setApiKeyExists] = useState(true);
 
   useEffect(() => {
-    localStorage.setItem('gemini-qr-history', JSON.stringify(history));
+    setApiKeyExists(hasApiKey());
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('gemini-qr-history', JSON.stringify(history));
+    } catch (e) {
+      console.error("Failed to save history", e);
+    }
   }, [history]);
 
   const addToHistory = (content: string, type: 'sent' | 'received', analysis?: string) => {
@@ -66,6 +80,16 @@ const App = () => {
         </h1>
         <p className="text-slate-400 text-sm">QRコードで簡単データ送受信</p>
       </div>
+
+      {!apiKeyExists && (
+        <div className="bg-amber-900/30 border border-amber-500/50 p-4 rounded-xl flex items-start gap-3 mb-2">
+          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="text-xs text-amber-200">
+            <p className="font-bold mb-1">API設定が必要です</p>
+            <p>AI機能を利用するには、Vercelの環境変数に <code>API_KEY</code> を設定して再デプロイしてください。</p>
+          </div>
+        </div>
+      )}
 
       <button 
         onClick={() => setMode(AppMode.SEND)}

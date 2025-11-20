@@ -1,12 +1,37 @@
 import { GoogleGenAI } from "@google/genai";
 
-// Safely retrieve API key to prevent runtime crash if process is undefined in browser
+// Safely retrieve API key supporting multiple environment variable patterns
 const getApiKey = () => {
+  // 1. Try Vite standard (import.meta.env)
   try {
-    return process.env.API_KEY;
+    // @ts-ignore - import.meta might not be typed in all setups but is standard for Vite
+    if (typeof import.meta !== 'undefined' && import.meta.env) {
+       // @ts-ignore
+       if (import.meta.env.VITE_API_KEY) return import.meta.env.VITE_API_KEY;
+       // @ts-ignore
+       if (import.meta.env.API_KEY) return import.meta.env.API_KEY;
+    }
   } catch (e) {
-    return "";
+    // Ignore errors accessing import.meta
   }
+
+  // 2. Try process.env (Webpack/Node/Next.js/CRA)
+  try {
+    if (typeof process !== 'undefined' && process.env) {
+      // Support VITE_ prefix in process.env
+      if (process.env.VITE_API_KEY) return process.env.VITE_API_KEY;
+      // Support standard API_KEY
+      if (process.env.API_KEY) return process.env.API_KEY;
+    }
+  } catch (e) {
+    // Ignore errors accessing process
+  }
+
+  return "";
+};
+
+export const hasApiKey = (): boolean => {
+  return !!getApiKey();
 };
 
 const ai = new GoogleGenAI({ apiKey: getApiKey() });
@@ -16,6 +41,9 @@ const ai = new GoogleGenAI({ apiKey: getApiKey() });
  */
 export const generateMessage = async (prompt: string): Promise<string> => {
   try {
+    if (!hasApiKey()) {
+       throw new Error("APIキーが設定されていません。");
+    }
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: `この入力に基づき、短く創造的で簡潔なメッセージを生成してください: "${prompt}"。
@@ -26,7 +54,7 @@ export const generateMessage = async (prompt: string): Promise<string> => {
     return response.text || "メッセージを生成できませんでした。";
   } catch (error) {
     console.error("Gemini Generate Error:", error);
-    throw new Error("Geminiへの接続に失敗しました。");
+    throw new Error("Geminiへの接続に失敗しました。APIキーが設定されているか確認してください。");
   }
 };
 
@@ -36,6 +64,10 @@ export const generateMessage = async (prompt: string): Promise<string> => {
  */
 export const analyzeScannedContent = async (content: string): Promise<string> => {
   try {
+    if (!hasApiKey()) {
+       return "APIキー未設定のため、分析機能は利用できません。";
+    }
+
     // Check if content is a data URL (image)
     if (content.startsWith('data:image')) {
       const [mimeMetadata, base64Data] = content.split(',');
