@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
-import { QrCode, ScanLine, History, ChevronRight, Copy, Check, Sparkles, ArrowLeft, X, Download, FileText, AlertTriangle } from 'lucide-react';
+import { QrCode, ScanLine, History, ChevronRight, Copy, Check, Sparkles, ArrowLeft, X, Download, FileText, AlertTriangle, ExternalLink } from 'lucide-react';
 import { AppMode, HistoryItem } from './types';
 import Scanner from './components/Scanner';
 import Generator from './components/Generator';
@@ -71,6 +72,8 @@ const App = () => {
 
   // Determine if content is a file (data URL)
   const isDataUrl = (str: string) => str.startsWith('data:');
+  // Determine if content is a URL
+  const isUrl = (str: string) => /^https?:\/\//i.test(str);
 
   const renderHome = () => (
     <div className="flex flex-col h-full p-6 max-w-md mx-auto justify-center gap-6 animate-fade-in">
@@ -101,7 +104,7 @@ const App = () => {
         </div>
         <div className="text-left">
           <h3 className="text-lg font-bold text-white">データを送信</h3>
-          <p className="text-slate-400 text-xs">AIでメッセージ作成・QR生成</p>
+          <p className="text-slate-400 text-xs">AI作成・大容量ファイル転送</p>
         </div>
         <ChevronRight className="ml-auto w-5 h-5 text-slate-600 group-hover:text-white group-hover:translate-x-1 transition-all" />
       </button>
@@ -134,6 +137,7 @@ const App = () => {
   const renderResultModal = () => {
     if (!scannedResult) return null;
     const isFile = isDataUrl(scannedResult.content);
+    const isLink = isUrl(scannedResult.content);
 
     return (
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
@@ -156,7 +160,7 @@ const App = () => {
             {/* Content Display */}
             <div className="space-y-2">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                {isFile ? '受信ファイル' : 'スキャン内容'}
+                {isFile ? '受信ファイル' : isLink ? '受信リンク' : 'スキャン内容'}
               </label>
               
               {isFile ? (
@@ -176,6 +180,23 @@ const App = () => {
                   >
                     <Download className="w-4 h-4" /> ダウンロード
                   </a>
+                </div>
+              ) : isLink ? (
+                <div className="flex flex-col gap-3 bg-black/40 p-4 rounded-lg border border-slate-800">
+                   <div className="font-mono text-sm text-blue-400 break-all">
+                      {scannedResult.content}
+                   </div>
+                   <a 
+                    href={scannedResult.content} 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-bold transition-colors shadow-lg shadow-blue-600/20"
+                  >
+                    <ExternalLink className="w-4 h-4" /> リンクを開く
+                  </a>
+                   <p className="text-xs text-slate-500 text-center">
+                     ※外部サイトへ移動します。ファイルのダウンロードリンクの場合は、リンク先でダウンロードが開始されます。
+                   </p>
                 </div>
               ) : (
                 <div className="bg-black/40 p-4 rounded-lg border border-slate-800 font-mono text-sm text-slate-200 break-all">

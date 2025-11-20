@@ -1,7 +1,9 @@
+
 import React, { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Sparkles, Send, RefreshCw, ArrowLeft, Paperclip, FileWarning, FileCheck } from 'lucide-react';
+import { Sparkles, Send, RefreshCw, ArrowLeft, Paperclip, FileWarning, FileCheck, UploadCloud, Link as LinkIcon } from 'lucide-react';
 import { generateMessage } from '../services/geminiService';
+import { uploadFile } from '../services/uploadService';
 
 interface GeneratorProps {
   onClose: () => void;
@@ -13,8 +15,10 @@ const MAX_QR_LENGTH = 2000; // Safe limit for QR codes
 const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
   const [input, setInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [generatedQR, setGeneratedQR] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleGeminiGenerate = async () => {
@@ -24,6 +28,7 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
       const enhanced = await generateMessage(input);
       setInput(enhanced);
       setFileError(null);
+      setUploadStatus(null);
     } catch (e) {
       console.error(e);
     } finally {
@@ -50,25 +55,40 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
     // Reset states
     setGeneratedQR(null);
     setFileError(null);
+    setUploadStatus(null);
+    setInput('');
 
-    if (file.size > 3000) { // Rough check before base64 (approx 2KB limit for QR safely)
-      setFileError("ファイルサイズが大きすぎます。QRコードには非常に小さなファイル（1-2KB程度）のみ適しています。");
+    // Check size (50MB limit)
+    if (file.size > 50 * 1024 * 1024) {
+      setFileError("ファイルサイズが50MBを超えています。より小さなファイルを選択してください。");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result.length > MAX_QR_LENGTH) {
-        setFileError(`変換後のデータが大きすぎます (${result.length}文字)。より小さなファイルを選択してください。`);
-      } else {
-        setInput(result);
+    setIsUploading(true);
+    setUploadStatus(`${file.name} をアップロード中...`);
+
+    try {
+      // Upload to ephemeral storage
+      const link = await uploadFile(file);
+      
+      setInput(link);
+      setUploadStatus("アップロード完了！リンクを発行しました。");
+      setGeneratedQR(link);
+      onSave(link); // Automatically save to history
+    } catch (err: any) {
+      setFileError(err.message || "アップロードに失敗しました。");
+      setUploadStatus(null);
+    } finally {
+      setIsUploading(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   const isDataUrl = input.startsWith('data:');
+  const isUrl = input.startsWith('http://') || input.startsWith('https://');
 
   return (
     <div className="flex flex-col h-full max-w-md mx-auto p-4 animate-fade-in">
@@ -89,7 +109,7 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
         <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700 shadow-sm">
           <div className="flex justify-between items-center mb-2">
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              メッセージ / データ
+              メッセージ / ファイル (Max 50MB)
             </label>
             <span className={`text-[10px] font-mono ${input.length > MAX_QR_LENGTH ? 'text-red-400' : 'text-slate-500'}`}>
               {input.length} / {MAX_QR_LENGTH}
@@ -102,22 +122,31 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
               setInput(e.target.value);
               setGeneratedQR(null);
               setFileError(null);
+              setUploadStatus(null);
             }}
-            placeholder="メッセージ入力、またはファイルを添付..."
+            placeholder="メッセージを入力、またはクリップアイコンからファイルをアップロード..."
             className="w-full bg-slate-900 text-white p-3 rounded-lg border border-slate-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all min-h-[100px] resize-none font-mono text-sm"
+            readOnly={isUploading}
           />
 
           {fileError && (
-            <div className="mt-2 flex items-start gap-2 text-red-400 text-xs bg-red-900/20 p-2 rounded">
+            <div className="mt-2 flex items-start gap-2 text-red-400 text-xs bg-red-900/20 p-2 rounded animate-fade-in">
               <FileWarning className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{fileError}</span>
             </div>
           )}
 
-          {isDataUrl && !fileError && (
-            <div className="mt-2 flex items-center gap-2 text-emerald-400 text-xs bg-emerald-900/20 p-2 rounded">
-              <FileCheck className="w-4 h-4 shrink-0" />
-              <span>ファイルデータがセットされました</span>
+          {uploadStatus && (
+            <div className={`mt-2 flex items-center gap-2 text-xs p-2 rounded animate-fade-in ${isUploading ? 'bg-blue-900/20 text-blue-400' : 'bg-emerald-900/20 text-emerald-400'}`}>
+              {isUploading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <FileCheck className="w-4 h-4" />}
+              <span>{uploadStatus}</span>
+            </div>
+          )}
+
+          {isUrl && !isUploading && (
+             <div className="mt-2 flex items-center gap-2 text-indigo-400 text-xs bg-indigo-900/20 p-2 rounded">
+              <LinkIcon className="w-4 h-4 shrink-0" />
+              <span>ファイルリンクが生成されました</span>
             </div>
           )}
           
@@ -130,15 +159,21 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"
-              title="ファイルを添付"
+              disabled={isUploading}
+              className="p-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded-lg text-slate-300 transition-colors relative group"
+              title="ファイルを添付 (最大50MB)"
             >
               <Paperclip className="w-4 h-4" />
+              {isUploading && (
+                <span className="absolute inset-0 flex items-center justify-center bg-slate-700 rounded-lg">
+                   <UploadCloud className="w-4 h-4 animate-pulse text-blue-400" />
+                </span>
+              )}
             </button>
 
             <button
               onClick={handleGeminiGenerate}
-              disabled={!input.trim() || isGenerating || isDataUrl}
+              disabled={!input.trim() || isGenerating || isDataUrl || isUploading || isUrl}
               className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 disabled:hover:bg-indigo-600 rounded-lg text-sm font-medium transition-all"
             >
               {isGenerating ? (
@@ -151,11 +186,11 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
             
             <button
               onClick={handleCreateQR}
-              disabled={!input.trim() || (input.length > MAX_QR_LENGTH)}
+              disabled={!input.trim() || (input.length > MAX_QR_LENGTH) || isUploading}
               className="flex-1 flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:hover:bg-blue-600 rounded-lg text-sm font-medium transition-all"
             >
               <Send className="w-4 h-4" />
-              QR作成
+              QR表示
             </button>
           </div>
         </div>
@@ -175,8 +210,13 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
               {generatedQR.substring(0, 50)}...
             </p>
             <p className="text-slate-400 text-[10px] mt-1 font-medium uppercase tracking-widest">
-              別のデバイスでスキャンしてください
+              {isUrl ? 'リンクをスキャンしてダウンロード' : '別のデバイスでスキャンしてください'}
             </p>
+            {isUrl && (
+              <p className="text-amber-500 text-[10px] mt-1 font-bold">
+                ※ファイルは一度ダウンロードすると削除されます
+              </p>
+            )}
           </div>
         )}
       </div>
