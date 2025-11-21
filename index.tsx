@@ -78,10 +78,10 @@ const App = () => {
   const renderHome = () => (
     <div className="flex flex-col h-full p-6 justify-center gap-4 animate-fade-in overflow-y-auto">
       <div className="text-center space-y-2 mb-4">
-        <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 to-emerald-500 bg-clip-text text-transparent">
+        <h1 className="text-3xl font-black bg-gradient-to-r from-blue-600 to-emerald-500 bg-clip-text text-transparent">
           Gemini QR リンク
         </h1>
-        <p className="text-slate-500 text-sm">QRコードで簡単データ送受信</p>
+        <p className="text-slate-500 text-xs">QRコードで簡単データ送受信</p>
       </div>
 
       {!apiKeyExists && (
@@ -96,45 +96,45 @@ const App = () => {
 
       <button 
         onClick={() => setMode(AppMode.P2P)}
-        className="group relative flex items-center p-5 bg-white border border-slate-200 rounded-2xl hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 overflow-hidden shadow-sm"
+        className="group relative flex items-center p-4 bg-white border border-slate-200 rounded-2xl hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/10 transition-all duration-300 overflow-hidden shadow-sm"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-purple-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="bg-purple-100 p-3 rounded-full mr-4 group-hover:scale-110 transition-transform">
           <Wifi className="w-6 h-6 text-purple-600" />
         </div>
         <div className="text-left">
-          <h3 className="text-lg font-bold text-slate-800">P2P 直接接続</h3>
-          <p className="text-slate-500 text-xs">サーバー不要・デバイス間転送</p>
+          <h3 className="text-base font-bold text-slate-800">P2P 直接接続</h3>
+          <p className="text-slate-500 text-[10px]">近くの端末へ送信 (同一Wi-Fi)</p>
         </div>
         <ChevronRight className="ml-auto w-5 h-5 text-slate-400 group-hover:text-purple-500 group-hover:translate-x-1 transition-all" />
       </button>
 
       <button 
         onClick={() => setMode(AppMode.SEND)}
-        className="group relative flex items-center p-5 bg-white border border-slate-200 rounded-2xl hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 overflow-hidden shadow-sm"
+        className="group relative flex items-center p-4 bg-white border border-slate-200 rounded-2xl hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 overflow-hidden shadow-sm"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-blue-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="bg-blue-100 p-3 rounded-full mr-4 group-hover:scale-110 transition-transform">
           <QrCode className="w-6 h-6 text-blue-600" />
         </div>
         <div className="text-left">
-          <h3 className="text-lg font-bold text-slate-800">データを送信</h3>
-          <p className="text-slate-500 text-xs">AI作成・クラウド転送</p>
+          <h3 className="text-base font-bold text-slate-800">データを送信</h3>
+          <p className="text-slate-500 text-[10px]">遠隔地へ送信 (クラウド経由)</p>
         </div>
         <ChevronRight className="ml-auto w-5 h-5 text-slate-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" />
       </button>
 
       <button 
         onClick={() => setMode(AppMode.RECEIVE)}
-        className="group relative flex items-center p-5 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 overflow-hidden shadow-sm"
+        className="group relative flex items-center p-4 bg-white border border-slate-200 rounded-2xl hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 overflow-hidden shadow-sm"
       >
         <div className="absolute inset-0 bg-gradient-to-r from-emerald-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
         <div className="bg-emerald-100 p-3 rounded-full mr-4 group-hover:scale-110 transition-transform">
           <ScanLine className="w-6 h-6 text-emerald-600" />
         </div>
         <div className="text-left">
-          <h3 className="text-lg font-bold text-slate-800">データを受信</h3>
-          <p className="text-slate-500 text-xs">QRスキャン・Gemini解析</p>
+          <h3 className="text-base font-bold text-slate-800">データを受信</h3>
+          <p className="text-slate-500 text-[10px]">QRスキャン・Gemini解析</p>
         </div>
         <ChevronRight className="ml-auto w-5 h-5 text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
       </button>
@@ -315,9 +315,9 @@ const App = () => {
   );
 
   return (
-    <div className="min-h-[100dvh] w-full flex items-center justify-center sm:p-4 font-sans">
-      {/* Main App Container - Acts as a "Phone" frame on desktop, full screen on mobile */}
-      <div className="w-full max-w-md bg-slate-50 h-[100dvh] sm:h-[85vh] sm:max-h-[900px] sm:rounded-3xl shadow-2xl overflow-hidden flex flex-col relative ring-1 ring-slate-900/5">
+    <div className="min-h-[100dvh] w-full flex items-center justify-center p-2 sm:p-4 font-sans overflow-hidden">
+      {/* Main App Container - Reduced height from 92dvh to 85dvh/800px max to avoid full screen feeling on mobile */}
+      <div className="w-full max-w-md bg-slate-50 h-[85dvh] sm:h-[85vh] sm:max-h-[800px] rounded-3xl shadow-2xl overflow-hidden flex flex-col relative ring-1 ring-slate-900/5 my-auto">
         
         <div className="flex-1 relative w-full h-full overflow-hidden flex flex-col">
           {mode === AppMode.HOME && renderHome()}

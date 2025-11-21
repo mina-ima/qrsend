@@ -155,9 +155,9 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
           <div className="flex gap-2 mt-3">
              <input 
               type="file" 
-              accept="*/*"
               ref={fileInputRef} 
-              onChange={handleFileSelect} 
+              onChange={handleFileSelect}
+              // Removed accept attribute to allow all files on all devices
               className="hidden" 
             />
             <button

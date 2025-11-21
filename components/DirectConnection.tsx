@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Peer, DataConnection } from 'peerjs';
 import { QRCodeSVG } from 'qrcode.react';
-import { ArrowLeft, Wifi, Send, Paperclip, Download, Check, Loader2, Smartphone, ScanLine, File as FileIcon, RefreshCw, XCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Wifi, Send, Paperclip, Download, Check, Loader2, Smartphone, ScanLine, File as FileIcon, RefreshCw, XCircle, AlertTriangle, Globe, CloudUpload } from 'lucide-react';
 import Scanner from './Scanner';
 
 interface DirectConnectionProps {
@@ -66,8 +66,6 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
       peerRef.current.destroy();
     }
 
-    // Create a random short ID for easier debugging/logging if needed, though PeerJS does this.
-    // We use multiple STUN servers to increase connection success rate.
     const peer = new Peer({
       debug: 2,
       config: {
@@ -91,7 +89,6 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
     });
 
     peer.on('connection', (conn) => {
-      // Host side: received a connection attempt
       setStatus('接続要求を受信中...');
       
       conn.on('open', () => {
@@ -126,7 +123,6 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         errorMsg = '接続サーバー(PeerJS)に到達できません。';
       }
       setError(errorMsg);
-      // Don't reset mode immediately to let user read error
     });
   };
 
@@ -145,7 +141,6 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
       if (data.type === 'text') {
         addMessage('peer', 'text', data.content);
       } else if (data.type === 'file') {
-        // Reconstruct file from Blob or ArrayBuffer
         const blob = new Blob([data.file], { type: data.fileType });
         const url = URL.createObjectURL(blob);
         addMessage('peer', 'file', undefined, {
@@ -178,8 +173,6 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
   };
 
   const startScanning = () => {
-    // First, switch to initializing state. 
-    // The useEffect will switch to 'scan' once peerId is obtained.
     setMode('initializing_client'); 
     setError(null);
     initializePeer(); 
@@ -191,20 +184,17 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
     setMode('connecting');
     setStatus('接続を確立しています...');
 
-    // Connect
     const conn = peerRef.current.connect(scannedId, {
-        reliable: true // Ensure file chunks arrive in order
+        reliable: true 
     });
     
-    // Set a timeout for connection
     connectionTimeoutRef.current = window.setTimeout(() => {
       if (mode !== 'connected') {
-        setError('接続がタイムアウトしました。双方が同じWi-Fiに接続しているか確認してください。');
+        setError('接続がタイムアウトしました。');
         setStatus('タイムアウト');
-        // Close connection attempt
         conn.close();
       }
-    }, 10000); // 10 seconds timeout
+    }, 10000); 
     
     conn.on('open', () => {
       handleConnection(conn);
@@ -289,14 +279,14 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
   if (mode === 'select') {
     return (
       <div className="flex flex-col h-full p-6 justify-center animate-fade-in overflow-y-auto">
-        <div className="flex items-center mb-6">
+        <div className="flex items-center mb-4">
           <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full text-slate-500 hover:text-slate-800 transition-colors">
             <ArrowLeft className="w-6 h-6" />
           </button>
           <h2 className="text-xl font-bold text-purple-600 ml-2">P2P 直接接続</h2>
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
            {error && (
             <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-sm text-red-600 mb-2 flex items-start gap-2">
                <XCircle className="w-5 h-5 shrink-0" />
@@ -304,47 +294,59 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
             </div>
           )}
 
-          <div className="bg-amber-50 p-4 rounded-xl border border-amber-200 text-sm text-amber-800 mb-2">
-            <p className="font-bold mb-2 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" /> 重要: ネットワーク設定
+          <div className="bg-amber-50 p-3 rounded-xl border border-amber-200 text-sm text-amber-800 mb-2">
+            <p className="font-bold mb-1 flex items-center gap-2 text-xs">
+              <AlertTriangle className="w-3 h-3" /> 注意: 同一Wi-Fiのみ
             </p>
-            <p className="text-xs leading-relaxed">
-              接続を安定させるため、<strong>PCとスマホは同じWi-Fiネットワーク</strong>に接続してください。異なる回線（例: Wi-Fiと4G）では接続できない場合があります。
+            <p className="text-[11px] leading-relaxed">
+              直接接続は、お互いが同じWi-Fiネットワークにいる必要があります。
             </p>
+            
+            {/* Remote Transfer Recommendation */}
+            <div className="mt-3 pt-2 border-t border-amber-200/50">
+              <p className="font-bold text-xs flex items-center gap-1 text-blue-700 mb-1">
+                <Globe className="w-3 h-3" /> 遠隔地（異なるWi-Fi）の場合
+              </p>
+              <p className="text-[11px] mb-2">
+                接続できない場合は、ホーム画面の「データを送信」をご利用ください。
+              </p>
+              <button 
+                onClick={onClose} // Going back to Home lets them choose Send Data
+                className="w-full py-2 bg-white border border-blue-200 text-blue-600 rounded-lg text-xs font-bold flex items-center justify-center gap-2 hover:bg-blue-50 transition-colors"
+              >
+                <CloudUpload className="w-3 h-3" />
+                ホームに戻って「データを送信」を選択
+              </button>
+            </div>
           </div>
 
-          <div className="bg-purple-50 p-4 rounded-xl border border-purple-100 text-sm text-purple-800 mb-4">
-            <p className="font-bold mb-2 flex items-center gap-2">
-              <Wifi className="w-4 h-4" /> サーバーを経由しません
-            </p>
-            <p>端末同士を直接接続してデータを転送します。</p>
+          <div className="grid grid-cols-1 gap-3">
+            <button 
+                onClick={startHosting}
+                className="group relative flex items-center p-4 bg-white border border-slate-200 rounded-2xl hover:border-purple-400 transition-all shadow-sm"
+            >
+                <div className="bg-purple-100 p-3 rounded-full mr-4">
+                <Smartphone className="w-6 h-6 text-purple-600" />
+                </div>
+                <div className="text-left">
+                <h3 className="text-base font-bold text-slate-800">待機 (ホスト)</h3>
+                <p className="text-slate-500 text-[10px]">自分のQRを表示</p>
+                </div>
+            </button>
+
+            <button 
+                onClick={startScanning}
+                className="group relative flex items-center p-4 bg-white border border-slate-200 rounded-2xl hover:border-purple-400 transition-all shadow-sm"
+            >
+                <div className="bg-purple-100 p-3 rounded-full mr-4">
+                <ScanLine className="w-6 h-6 text-purple-600" />
+                </div>
+                <div className="text-left">
+                <h3 className="text-base font-bold text-slate-800">参加 (ゲスト)</h3>
+                <p className="text-slate-500 text-[10px]">相手のQRをスキャン</p>
+                </div>
+            </button>
           </div>
-
-          <button 
-            onClick={startHosting}
-            className="group relative flex items-center p-6 bg-white border border-slate-200 rounded-2xl hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/10 transition-all shadow-sm"
-          >
-             <div className="bg-purple-100 p-4 rounded-full mr-5">
-               <Smartphone className="w-8 h-8 text-purple-600" />
-             </div>
-             <div className="text-left">
-               <h3 className="text-lg font-bold text-slate-800">待機する (ホスト)</h3>
-               <p className="text-slate-500 text-xs">QRコードを表示して接続を待つ</p>
-             </div>
-          </button>
-
-          <button 
-            onClick={startScanning}
-            className="group relative flex items-center p-6 bg-white border border-slate-200 rounded-2xl hover:border-purple-400 hover:shadow-lg hover:shadow-purple-500/10 transition-all shadow-sm"
-          >
-             <div className="bg-purple-100 p-4 rounded-full mr-5">
-               <ScanLine className="w-8 h-8 text-purple-600" />
-             </div>
-             <div className="text-left">
-               <h3 className="text-lg font-bold text-slate-800">参加する (クライアント)</h3>
-               <p className="text-slate-500 text-xs">相手のQRコードを読み取る</p>
-             </div>
-          </button>
         </div>
       </div>
     );
@@ -353,13 +355,12 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
   if (mode === 'initializing_client') {
      return (
         <div className="flex flex-col h-full items-center justify-center p-6 bg-slate-50 animate-fade-in">
-            <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-6" />
-            <h3 className="text-xl font-bold text-slate-800 mb-2">準備中...</h3>
-            <p className="text-slate-500 text-center text-sm mb-8">
-                P2PネットワークのIDを取得しています。<br/>
-                数秒お待ちください。
+            <Loader2 className="w-10 h-10 text-purple-600 animate-spin mb-4" />
+            <h3 className="text-lg font-bold text-slate-800 mb-2">準備中...</h3>
+            <p className="text-slate-500 text-center text-xs mb-8">
+                P2PネットワークID取得中
             </p>
-            <button onClick={resetConnection} className="text-slate-400 text-sm hover:text-slate-600 underline">
+            <button onClick={resetConnection} className="text-slate-400 text-xs hover:text-slate-600 underline">
                 キャンセル
             </button>
         </div>
@@ -372,10 +373,12 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         <button onClick={resetConnection} className="absolute top-4 left-4 p-2 hover:bg-slate-200 rounded-full text-slate-500">
             <ArrowLeft className="w-6 h-6" />
         </button>
-        <div className="bg-white p-6 rounded-2xl shadow-xl mb-8 animate-scale-up border border-slate-100 relative">
+        
+        {/* Reduced size of QR container and QR code itself */}
+        <div className="bg-white p-4 rounded-xl shadow-lg mb-6 animate-scale-up border border-slate-100 relative">
           {peerId ? (
             <>
-              <QRCodeSVG value={peerId} size={200} level="L" includeMargin />
+              <QRCodeSVG value={peerId} size={160} level="L" includeMargin />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                   {status === '接続要求を受信中...' && (
                       <div className="bg-white/90 p-4 rounded-full shadow-lg backdrop-blur-sm">
@@ -385,29 +388,30 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
               </div>
             </>
           ) : (
-            <div className="w-[200px] h-[200px] flex items-center justify-center">
+            <div className="w-[160px] h-[160px] flex items-center justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
             </div>
           )}
         </div>
-        <h3 className="text-xl font-bold text-slate-800 mb-2">
+
+        <h3 className="text-lg font-bold text-slate-800 mb-2">
             {status === '接続要求を受信中...' ? '接続処理中...' : '接続待機中...'}
         </h3>
-        <p className="text-slate-500 text-center text-sm max-w-xs leading-relaxed">
-          相手の端末で「参加する」を選び、<br/>このQRコードをスキャンしてください。
+        <p className="text-slate-500 text-center text-xs max-w-[200px] leading-relaxed">
+          相手の「参加」でこのQRをスキャン
         </p>
-        <p className="mt-4 text-xs text-amber-600 font-medium bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
-            同じWi-Fiに接続してください
+        <p className="mt-4 text-[10px] text-amber-600 font-medium bg-amber-50 px-3 py-1 rounded-full border border-amber-100">
+            同じWi-Fiに接続必須
         </p>
         
         {status !== '初期化中...' && (
              <button 
                 onClick={() => {
-                    initializePeer(); // Reset peer
+                    initializePeer(); 
                 }}
-                className="mt-8 flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full text-sm transition-colors"
+                className="mt-6 flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full text-xs transition-colors"
              >
-                <RefreshCw className="w-4 h-4" /> IDを再生成
+                <RefreshCw className="w-3 h-3" /> ID再生成
              </button>
         )}
       </div>
@@ -428,9 +432,9 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
              onScan={handleScan} 
            />
         </div>
-        <div className="absolute bottom-24 left-0 w-full text-center pointer-events-none">
-            <span className="bg-black/60 text-white px-4 py-2 rounded-full text-sm backdrop-blur-md shadow-lg">
-                相手のQRコードをスキャン
+        <div className="absolute bottom-8 left-0 w-full text-center pointer-events-none">
+            <span className="bg-black/60 text-white px-4 py-2 rounded-full text-xs backdrop-blur-md shadow-lg">
+                QRコードをスキャン
             </span>
         </div>
       </div>
@@ -440,21 +444,24 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
   if (mode === 'connecting') {
       return (
         <div className="flex flex-col h-full items-center justify-center p-6 bg-slate-50 animate-fade-in">
-             <Loader2 className="w-12 h-12 text-purple-600 animate-spin mb-6" />
-             <h3 className="text-xl font-bold text-slate-800 mb-2">接続中...</h3>
-             <p className="text-slate-500 text-center text-sm mb-8">
-                 相手との通信経路を確立しています。<br/>これには数秒〜20秒ほどかかる場合があります。
+             <Loader2 className="w-10 h-10 text-purple-600 animate-spin mb-6" />
+             <h3 className="text-lg font-bold text-slate-800 mb-2">接続中...</h3>
+             <p className="text-slate-500 text-center text-xs mb-4">
+                 通信経路を確立しています
              </p>
 
              {error && (
-                 <p className="text-red-500 text-sm font-bold mb-4 bg-red-50 px-4 py-2 rounded-lg">{error}</p>
+                 <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-xs text-red-600 mb-4 flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <p>{error}<br/>同一Wi-Fiか確認してください。</p>
+                 </div>
              )}
 
              <button 
                 onClick={resetConnection}
-                className="px-6 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-100 transition-colors text-sm"
+                className="px-6 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-100 transition-colors text-xs"
              >
-                キャンセル / 戻る
+                キャンセル
              </button>
         </div>
       )
@@ -462,8 +469,8 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
 
   // Chat / Connected Mode
   return (
-    <div className="flex flex-col h-full bg-slate-50 w-full">
-      <div className="flex items-center justify-between p-4 bg-white border-b border-slate-200 shadow-sm z-10 shrink-0">
+    <div className="flex flex-col h-full bg-slate-50 w-full overflow-hidden">
+      <div className="flex items-center justify-between p-3 bg-white border-b border-slate-200 shadow-sm z-10 shrink-0">
         <button onClick={() => {
             if (confirm("接続を切断して戻りますか？")) {
                 onClose();
@@ -478,20 +485,20 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
           </h3>
           <span className="text-[10px] text-slate-400 font-mono">P2P Direct Link</span>
         </div>
-        <div className="w-9"></div> {/* Spacer */}
+        <div className="w-9"></div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 min-h-0 w-full">
         {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-slate-400 opacity-60">
                 <Wifi className="w-12 h-12 mb-2" />
-                <p className="text-sm text-center">接続されました。<br/>メッセージやファイルを送信できます。</p>
+                <p className="text-xs text-center">接続されました。<br/>メッセージやファイルを送信できます。</p>
             </div>
         )}
         
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl p-3 shadow-sm ${
+            <div className={`max-w-[85%] rounded-2xl p-3 shadow-sm ${
               msg.sender === 'me' 
                 ? 'bg-purple-600 text-white rounded-tr-none' 
                 : 'bg-white text-slate-800 border border-slate-200 rounded-tl-none'
@@ -532,18 +539,19 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="p-4 bg-white border-t border-slate-200 shrink-0 pb-[env(safe-area-inset-bottom)]">
-        <div className="flex items-end gap-2 mb-[env(safe-area-inset-bottom)]">
+      <div className="p-3 bg-white border-t border-slate-200 shrink-0 pb-[env(safe-area-inset-bottom,20px)]">
+        <div className="flex items-end gap-2">
           <input 
             type="file" 
-            accept="*/*"
             ref={fileInputRef} 
-            onChange={sendFile} 
+            onChange={sendFile}
+            // Removed 'accept' attribute to allow all files on Android/iOS
             className="hidden" 
           />
           <button 
             onClick={() => fileInputRef.current?.click()}
             className="p-3 bg-slate-100 hover:bg-slate-200 rounded-xl text-slate-500 hover:text-purple-600 transition-colors"
+            title="ファイルを添付"
           >
             <Paperclip className="w-5 h-5" />
           </button>
@@ -557,7 +565,7 @@ const DirectConnection: React.FC<DirectConnectionProps> = ({ onClose }) => {
                 }
             }}
             placeholder="メッセージを入力..."
-            className="flex-1 bg-slate-100 text-slate-900 p-3 rounded-xl border-none focus:ring-2 focus:ring-purple-500 resize-none max-h-24 min-h-[44px]"
+            className="flex-1 bg-slate-100 text-slate-900 p-3 rounded-xl border-none focus:ring-2 focus:ring-purple-500 resize-none max-h-24 min-h-[44px] text-sm"
             rows={1}
           />
           <button 
