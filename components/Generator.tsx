@@ -1,6 +1,7 @@
+
 import React, { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Sparkles, Send, RefreshCw, ArrowLeft, Paperclip, FileWarning, FileCheck, UploadCloud, Link as LinkIcon } from 'lucide-react';
+import { Sparkles, Send, RefreshCw, ArrowLeft, Paperclip, FileWarning, FileCheck, UploadCloud, Link as LinkIcon, Globe } from 'lucide-react';
 import { generateMessage } from '../services/geminiService';
 import { uploadFile } from '../services/uploadService';
 
@@ -102,7 +103,12 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
         >
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h2 className="text-xl font-bold text-blue-600 ml-2">データを送信</h2>
+        <div className="ml-2">
+          <h2 className="text-xl font-bold text-blue-600">データを送信</h2>
+          <p className="text-[10px] text-slate-500 flex items-center gap-1">
+            <Globe className="w-3 h-3" /> クラウド経由・遠隔地OK
+          </p>
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col gap-6 overflow-y-auto">
@@ -134,7 +140,7 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
           {fileError && (
             <div className="mt-2 flex items-start gap-2 text-red-600 text-xs bg-red-50 p-2 rounded animate-fade-in border border-red-100">
               <FileWarning className="w-4 h-4 shrink-0 mt-0.5" />
-              <span>{fileError}</span>
+              <span className="whitespace-pre-wrap">{fileError}</span>
             </div>
           )}
 
@@ -148,7 +154,7 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
           {isUrl && !isUploading && (
              <div className="mt-2 flex items-center gap-2 text-indigo-600 text-xs bg-indigo-50 p-2 rounded border border-indigo-100">
               <LinkIcon className="w-4 h-4 shrink-0" />
-              <span>ファイルリンクが生成されました</span>
+              <span>ファイルリンクが生成されました（どこでも受信可能）</span>
             </div>
           )}
           
@@ -157,7 +163,6 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
               type="file" 
               ref={fileInputRef} 
               onChange={handleFileSelect}
-              // Removed accept attribute to allow all files on all devices
               className="hidden" 
             />
             <button
@@ -216,8 +221,8 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
               {isUrl ? 'リンクをスキャンしてダウンロード' : '別のデバイスでスキャンしてください'}
             </p>
             {isUrl && (
-              <p className="text-amber-600 text-[10px] mt-1 font-bold">
-                ※ファイルは一度ダウンロードすると削除されます
+              <p className="text-emerald-600 text-[10px] mt-1 font-bold">
+                ※このリンクは遠隔地でも有効です
               </p>
             )}
           </div>

@@ -3,7 +3,7 @@
  * Service to handle temporary file uploads.
  * Implements a fallback strategy:
  * 1. file.io (Primary): Auto-deletes after download, good privacy.
- * 2. transfer.sh (Fallback): Reliable, keeps files for 14 days.
+ * 2. tmpfiles.org (Fallback): Keeps files for 60 mins, good CORS support.
  */
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
@@ -32,20 +32,34 @@ const uploadToFileIo = async (file: File): Promise<string> => {
   return data.link;
 };
 
-const uploadToTransferSh = async (file: File): Promise<string> => {
-  // transfer.sh: Reliable, PUT method
-  const filename = encodeURIComponent(file.name);
-  const response = await fetch(`https://transfer.sh/${filename}`, {
-    method: 'PUT',
-    body: file
+const uploadToTmpFiles = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  // tmpfiles.org API
+  const response = await fetch('https://tmpfiles.org/api/v1/upload', {
+    method: 'POST',
+    body: formData
   });
 
   if (!response.ok) {
-    throw new Error(`Transfer.sh Error: ${response.status}`);
+    throw new Error(`TmpFiles Error: ${response.status}`);
   }
 
-  const text = await response.text();
-  return text.trim();
+  const json = await response.json();
+  if (json.status !== 'success') {
+    throw new Error('TmpFiles reported failure');
+  }
+
+  let url = json.data.url;
+  // Convert to direct download link for better UX
+  // Default: https://tmpfiles.org/12345/file.jpg
+  // Direct: https://tmpfiles.org/dl/12345/file.jpg
+  if (url && url.includes('tmpfiles.org/')) {
+      url = url.replace('tmpfiles.org/', 'tmpfiles.org/dl/');
+  }
+  
+  return url;
 };
 
 export const uploadFile = async (file: File, onStatusUpdate?: StatusCallback): Promise<string> => {
@@ -53,20 +67,25 @@ export const uploadFile = async (file: File, onStatusUpdate?: StatusCallback): P
     throw new Error(`ファイルサイズが大きすぎます (上限 50MB)。現在のサイズ: ${(file.size / (1024 * 1024)).toFixed(2)}MB`);
   }
 
+  const errors: string[] = [];
+
   // 1. Try Primary Service (file.io)
   try {
-    if (onStatusUpdate) onStatusUpdate("メインサーバーへアップロード中...");
+    if (onStatusUpdate) onStatusUpdate("サーバー1 (file.io) へアップロード中...");
     return await uploadToFileIo(file);
-  } catch (error) {
-    console.warn("Primary upload failed, switching to fallback...", error);
-    
-    // 2. Try Fallback Service (transfer.sh)
-    try {
-      if (onStatusUpdate) onStatusUpdate("予備サーバーへ再試行中...");
-      return await uploadToTransferSh(file);
-    } catch (fallbackError) {
-      console.error("Fallback upload failed:", fallbackError);
-      throw new Error("アップロードに失敗しました。ネットワーク環境を確認するか、別のファイルをお試しください。");
-    }
+  } catch (error: any) {
+    console.warn("Primary upload (file.io) failed, switching to fallback...", error);
+    errors.push(`file.io: ${error.message}`);
   }
+
+  // 2. Try Fallback Service (tmpfiles.org)
+  try {
+    if (onStatusUpdate) onStatusUpdate("予備サーバー (tmpfiles.org) へ再試行中...");
+    return await uploadToTmpFiles(file);
+  } catch (fallbackError: any) {
+    console.error("Fallback upload (tmpfiles.org) failed:", fallbackError);
+    errors.push(`tmpfiles.org: ${fallbackError.message}`);
+  }
+
+  throw new Error(`アップロードに失敗しました。\nネットワーク環境を確認するか、別のファイルをお試しください。\n(詳細: ${errors.join(', ')})`);
 };
