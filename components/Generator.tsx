@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { Sparkles, Send, RefreshCw, ArrowLeft, Paperclip, FileWarning, FileCheck, UploadCloud, Link as LinkIcon, Globe } from 'lucide-react';
+import { Sparkles, Send, RefreshCw, ArrowLeft, Paperclip, FileWarning, FileCheck, UploadCloud, Link as LinkIcon, Globe, Clock, AlertCircle } from 'lucide-react';
 import { generateMessage } from '../services/geminiService';
 import { uploadFile } from '../services/uploadService';
 
@@ -163,6 +163,7 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
               type="file" 
               ref={fileInputRef} 
               onChange={handleFileSelect}
+              // Remove accept attribute to allow all file types
               className="hidden" 
             />
             <button
@@ -220,10 +221,17 @@ const Generator: React.FC<GeneratorProps> = ({ onClose, onSave }) => {
             <p className="text-slate-400 text-[10px] mt-1 font-medium uppercase tracking-widest">
               {isUrl ? 'リンクをスキャンしてダウンロード' : '別のデバイスでスキャンしてください'}
             </p>
+            
             {isUrl && (
-              <p className="text-emerald-600 text-[10px] mt-1 font-bold">
-                ※このリンクは遠隔地でも有効です
-              </p>
+              <div className="mt-3 p-2 bg-slate-50 rounded-lg border border-slate-100 w-full text-[10px] text-slate-500 text-center">
+                <p className="text-emerald-600 font-bold mb-1 flex items-center justify-center gap-1">
+                  <Globe className="w-3 h-3" /> 遠隔地でも有効
+                </p>
+                <p className="flex items-center justify-center gap-1 text-xs scale-90 text-amber-600">
+                  <Clock className="w-3 h-3" />
+                  <span>自動削除: 1時間〜1日後 または DL後</span>
+                </p>
+              </div>
             )}
           </div>
         )}
